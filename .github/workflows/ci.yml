@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_17.0.app
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project OpenIPTV.xcodeproj \
+            -scheme OpenIPTV
+
+      - name: Build (tvOS simulator)
+        run: |
+          xcodebuild build \
+            -project OpenIPTV.xcodeproj \
+            -scheme OpenIPTV \
+            -destination 'platform=tvOS Simulator,name=Apple TV,OS=latest' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO

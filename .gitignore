@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+*.swp
+*~.nib
+
+# Xcode — user-specific
+**/xcuserdata/
+**/*.xcuserstate
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+
+# Build artifacts
+build/
+DerivedData/
+.build/
+*.moved-aside
+*.hmap
+*.ipa
+*.xcarchive
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+Packages/
+
+# Dependency managers
+Pods/
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output
+
+# Logs
+*.log
+
+# Local editor state
+.vscode/
+.idea/

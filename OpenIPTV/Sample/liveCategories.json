@@ -1,0 +1,243 @@
+[
+  {
+    "category_id": "10033",
+    "category_name": "A GRANDE CONQUISTA",
+    "parent_id": 0
+  },
+  {
+    "category_id": "10032",
+    "category_name": "JOGOS BRASILEIRÃO",
+    "parent_id": 0
+  },
+  {
+    "category_id": "425",
+    "category_name": "GLOBO CAPITAIS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "870",
+    "category_name": "GLOBO INTERIOR",
+    "parent_id": 0
+  },
+  {
+    "category_id": "196",
+    "category_name": "RECORD TV",
+    "parent_id": 0
+  },
+  {
+    "category_id": "319",
+    "category_name": "SBT",
+    "parent_id": 0
+  },
+  {
+    "category_id": "320",
+    "category_name": "BAND",
+    "parent_id": 0
+  },
+  {
+    "category_id": "3",
+    "category_name": "ABERTOS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "45",
+    "category_name": "PREMIERE",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1105",
+    "category_name": "MAX",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1103",
+    "category_name": "ELEVEN SPORTS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1076",
+    "category_name": "DAZN",
+    "parent_id": 0
+  },
+  {
+    "category_id": "197",
+    "category_name": "PAY-PER-VIEW",
+    "parent_id": 0
+  },
+  {
+    "category_id": "10",
+    "category_name": "ESPORTES",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1092",
+    "category_name": "ESTADUAIS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "10005",
+    "category_name": "NOTICIAS INTERNACIONAIS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "200",
+    "category_name": "SPORTV",
+    "parent_id": 0
+  },
+  {
+    "category_id": "10003",
+    "category_name": "F1 TV",
+    "parent_id": 0
+  },
+  {
+    "category_id": "199",
+    "category_name": "ESPN",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1013",
+    "category_name": "NBA PAY-PER-VIEW",
+    "parent_id": 0
+  },
+  {
+    "category_id": "263",
+    "category_name": "SPORTS WORLD",
+    "parent_id": 0
+  },
+  {
+    "category_id": "750",
+    "category_name": "CINE SKY",
+    "parent_id": 0
+  },
+  {
+    "category_id": "46",
+    "category_name": "TELECINE",
+    "parent_id": 0
+  },
+  {
+    "category_id": "9",
+    "category_name": "FILMES E SERIES",
+    "parent_id": 0
+  },
+  {
+    "category_id": "51",
+    "category_name": "HBO",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1107",
+    "category_name": "STAR+",
+    "parent_id": 0
+  },
+  {
+    "category_id": "198",
+    "category_name": "STAR CHANNEL",
+    "parent_id": 0
+  },
+  {
+    "category_id": "194",
+    "category_name": "LEGENDADOS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "11",
+    "category_name": "DOCUMENTARIOS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "491",
+    "category_name": "DISCOVERY",
+    "parent_id": 0
+  },
+  {
+    "category_id": "5",
+    "category_name": "VARIEDADES",
+    "parent_id": 0
+  },
+  {
+    "category_id": "8",
+    "category_name": "INFANTIS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "6",
+    "category_name": "NOTICIAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "7",
+    "category_name": "MUSICAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "195",
+    "category_name": "UHD 4K",
+    "parent_id": 0
+  },
+  {
+    "category_id": "260",
+    "category_name": "H265/HEVC",
+    "parent_id": 0
+  },
+  {
+    "category_id": "4",
+    "category_name": "RELIGIOSOS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1094",
+    "category_name": "STAND-UP 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "68",
+    "category_name": "SERIES 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "1085",
+    "category_name": "SERIES 24H POR TEMPORADA",
+    "parent_id": 0
+  },
+  {
+    "category_id": "67",
+    "category_name": "DESENHOS 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "592",
+    "category_name": "PROGRAMAS DE TV 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "473",
+    "category_name": "YOUTUBE 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "713",
+    "category_name": "ANIMES 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "593",
+    "category_name": "24 HORAS PARA RELAXAR ",
+    "parent_id": 0
+  },
+  {
+    "category_id": "75",
+    "category_name": "FILMES 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "285",
+    "category_name": "CLIPES 24 HORAS",
+    "parent_id": 0
+  },
+  {
+    "category_id": "13",
+    "category_name": "+18 ADULTOS",
+    "parent_id": 0
+  }
+]
+
