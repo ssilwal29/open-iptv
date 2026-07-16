@@ -12,13 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_17.0.app
+      - name: Select newest Xcode
+        run: |
+          echo "Installed Xcodes:"
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)"
 
       - name: Show toolchain
         run: |
           xcodebuild -version
           swift --version
+          echo "Available tvOS SDKs:"
+          xcodebuild -showsdks | grep -i tvos || true
 
       - name: Resolve SPM dependencies
         run: |
@@ -31,6 +36,6 @@ jobs:
           xcodebuild build \
             -project OpenIPTV.xcodeproj \
             -scheme OpenIPTV \
-            -destination 'platform=tvOS Simulator,name=Apple TV,OS=latest' \
+            -destination 'generic/platform=tvOS Simulator' \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO
