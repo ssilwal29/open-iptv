@@ -1,5 +1,9 @@
 # OpenIPTV
 
+<p align="center">
+  <img src="docs/open-iptv-cta.png" alt="OpenIPTV — a free, open-source tvOS IPTV client" width="820">
+</p>
+
 A free, open-source, native **tvOS 26** IPTV client for Apple TV. Bring your own
 Xtream Codes account and watch your movies, TV series, and live channels with a
 native SwiftUI interface.
