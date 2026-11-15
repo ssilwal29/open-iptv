@@ -165,7 +165,7 @@ extension LiveView {
     fileprivate func toggleFavorite() {
         guard let channel = viewModel.selectedChannel, let profile = activeProfile else { return }
         profile.toggleFavoriteLive(channel.streamId)
-        try? modelContext.save()
+        DeferredSave.schedule(modelContext)
     }
 }
 

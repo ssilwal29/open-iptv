@@ -129,6 +129,80 @@ extension Profile {
     }
 }
 
+// MARK: - Subscription expiry
+
+extension Profile {
+    /// `expiresAt` holds the panel's Unix `exp_date`; empty / "null" / "0"
+    /// means the account never expires.
+    var expiryDate: Date? {
+        guard let seconds = TimeInterval(expiresAt), seconds > 0 else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    /// Whole days until expiry (negative once expired); nil when unlimited.
+    func daysUntilExpiry(from now: Date = .now) -> Int? {
+        guard let expiry = expiryDate else { return nil }
+        return Int((expiry.timeIntervalSince(now) / 86_400).rounded(.down))
+    }
+
+    /// Expired, or expiring within `ProfileExpiry.warningDays`.
+    var isExpiringSoon: Bool {
+        guard let days = daysUntilExpiry() else { return false }
+        return days < ProfileExpiry.warningDays
+    }
+}
+
+enum ProfileExpiry {
+    static let warningDays = 7
+
+    /// "Expires today", "Expires in 3 days", "Expired 2 days ago", "Never expires".
+    static func summary(for profile: Profile, now: Date = .now) -> String {
+        guard let expiry = profile.expiryDate else { return "Never expires" }
+        if expiry <= now {
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .full
+            return "Expired \(formatter.localizedString(for: expiry, relativeTo: now))"
+        }
+        let days = profile.daysUntilExpiry(from: now) ?? 0
+        switch days {
+        case 0: return "Expires today"
+        case 1: return "Expires tomorrow"
+        default: return "Expires in \(days) days"
+        }
+    }
+}
+
+// MARK: - Parental PIN
+
+/// A per-profile 4-digit PIN guarding "Hide adult content". Kept in the
+/// Keychain (like the account password), never in SwiftData.
+extension Profile {
+    private enum PINKeychain {
+        static let service = "io.OpenIPTV.profile.parentalPIN"
+    }
+
+    static let parentalPINLength = 4
+
+    var hasParentalPIN: Bool {
+        KeychainHelper.read(service: PINKeychain.service, account: id) != nil
+    }
+
+    func verifyParentalPIN(_ candidate: String) -> Bool {
+        guard let data = KeychainHelper.read(service: PINKeychain.service, account: id),
+              let stored = String(data: data, encoding: .utf8)
+        else { return false }
+        return stored == candidate
+    }
+
+    func setParentalPIN(_ pin: String) {
+        try? KeychainHelper.save(Data(pin.utf8), service: PINKeychain.service, account: id)
+    }
+
+    func clearParentalPIN() {
+        KeychainHelper.delete(service: PINKeychain.service, account: id)
+    }
+}
+
 @Model
 final class Server {
     var url: String

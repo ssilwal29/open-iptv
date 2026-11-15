@@ -83,4 +83,39 @@ extension ModelContext {
             return profile
         }
     }
+
+    /// Refreshes status / expiry / connection limit from a fresh account
+    /// payload (fetched on launch), so Settings doesn't show the values from
+    /// the day the account was added.
+    @MainActor
+    func updateAccountInfo(profileId: String, from account: Account) {
+        guard account.info.isAuthenticated, let profile = loadProfile(id: profileId) else { return }
+        var changed = false
+        if profile.status != account.info.status { profile.status = account.info.status; changed = true }
+        if profile.expiresAt != account.info.expiresAt { profile.expiresAt = account.info.expiresAt; changed = true }
+        if profile.maxConnections != account.info.maxConnections {
+            profile.maxConnections = account.info.maxConnections
+            changed = true
+        }
+        if changed { try? save() }
+    }
+
+    /// Removes a profile and everything synced for it: catalog rows, resume
+    /// points, and its Keychain secrets. Orphans are swept immediately — if
+    /// they were left for the next launch, RootView's legacy backfill would
+    /// hand them to the remaining profile when only one is left.
+    @MainActor
+    func removeProfile(_ profile: Profile) {
+        let profileId = profile.id
+        let progress = (try? fetch(FetchDescriptor<PlaybackProgress>(
+            predicate: #Predicate { $0.profile?.id == profileId }
+        ))) ?? []
+        for row in progress { delete(row) }
+
+        profile.clearPassword()
+        profile.clearParentalPIN()
+        delete(profile)
+        try? save()
+        PersistenceController.cleanupOrphans(in: self)
+    }
 }

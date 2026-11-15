@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE492AB3CAE46E59E44811 /* AccountSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE7AF53575B961709941A2 /* AccountSheets.swift */; };
 		C0DEAAE3E5B7D0DBAB845851 /* LivePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEB4835A77409EF62C608C /* LivePlayback.swift */; };
 		C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */; };
 		C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE8E126D357E249CA960FC /* EPGCache.swift */; };
@@ -78,6 +79,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE7AF53575B961709941A2 /* AccountSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSheets.swift; sourceTree = "<group>"; };
 		C0DEB4835A77409EF62C608C /* LivePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePlayback.swift; sourceTree = "<group>"; };
 		C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePlayback.swift; sourceTree = "<group>"; };
 		C0DE8E126D357E249CA960FC /* EPGCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGCache.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 		B2F052722C38C2CC0064FBE7 /* OpenIPTV */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE7AF53575B961709941A2 /* AccountSheets.swift */,
 				B2F052732C38C2CC0064FBE7 /* OpenIPTVApp.swift */,
 				B2F0528E2C38C7E20064FBE7 /* ContentView.swift */,
 				B20268B72C41F46D003DD87F /* SetupView.swift */,
@@ -397,6 +400,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE492AB3CAE46E59E44811 /* AccountSheets.swift in Sources */,
 				C0DEAAE3E5B7D0DBAB845851 /* LivePlayback.swift in Sources */,
 				C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */,
 				C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */,

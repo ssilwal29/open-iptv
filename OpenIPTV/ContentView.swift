@@ -110,6 +110,11 @@ struct ContentView: View {
                 }
             }
             .animation(.smooth, value: viewModel.progress.isActive)
+            .overlay(alignment: .bottomLeading) {
+                if let profile = activeProfile {
+                    ExpiryNotice(profile: profile)
+                }
+            }
             .onPreferenceChange(DetailModalActiveKey.self) { active in
                 detailModalActive = active
             }
@@ -254,5 +259,42 @@ struct SyncBannerView: View {
         .glassCapsule()
         .animation(.smooth(duration: 0.3), value: isDone)
         .animation(.smooth(duration: 0.3), value: percent)
+    }
+}
+
+/// Brief, non-focusable notice when the active account is expired or expires
+/// within a week. Shown once per profile per launch; the details stay in
+/// Settings → Account.
+private struct ExpiryNotice: View {
+    let profile: Profile
+    @State private var visible = false
+
+    var body: some View {
+        Group {
+            if visible {
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("\(profile.name): \(ProfileExpiry.summary(for: profile))")
+                        .font(.callout)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .glassCapsule()
+                .padding(48)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .allowsHitTesting(false)
+            }
+        }
+        .animation(.smooth, value: visible)
+        .task(id: "\(profile.id)|\(profile.expiresAt)") {
+            guard profile.isExpiringSoon else {
+                visible = false
+                return
+            }
+            visible = true
+            try? await Task.sleep(for: .seconds(10))
+            visible = false
+        }
     }
 }
