@@ -32,6 +32,8 @@ struct SettingsView: View {
     /// can't observe, so this forces `hasParentalPIN` to be re-read.
     @State private var pinRevision = 0
     @State private var isRemovingProfile = false
+    @State private var showingAPIKeySheet = false
+    @State private var showingModelSheet = false
 
     @Namespace private var settingsScope
 
@@ -104,6 +106,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showingAddAccount) {
             AddAccountView()
         }
+        .sheet(isPresented: $showingAPIKeySheet) {
+            OpenRouterKeySheet()
+        }
+        .sheet(isPresented: $showingModelSheet) {
+            OpenRouterModelSheet()
+        }
         .sheet(item: $pinRequest) { request in
             ParentalPINSheet(profile: request.profile, purpose: request.purpose) {
                 pinRevision += 1
@@ -138,6 +146,11 @@ struct SettingsView: View {
                     onRemove: { profilePendingRemoval = profile }
                 )
             } else { notSignedInPanel }
+        case .guide:
+            GuideAIPanel(
+                onSetKey: { showingAPIKeySheet = true },
+                onChangeModel: { showingModelSheet = true }
+            )
         case .accounts:
             AccountsPanel(
                 profiles: profiles.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending },
@@ -232,13 +245,14 @@ struct SettingsView: View {
 // MARK: - Sections
 
 private enum SettingsSection: CaseIterable, Hashable {
-    case account, accounts, content
+    case account, accounts, content, guide
 
     var title: String {
         switch self {
         case .account: return "Account"
         case .accounts: return "Switch Account"
         case .content: return "Content"
+        case .guide: return "Guide (AI)"
         }
     }
 
@@ -247,11 +261,12 @@ private enum SettingsSection: CaseIterable, Hashable {
         case .account: return "person.text.rectangle"
         case .accounts: return "person.2"
         case .content: return "film.stack"
+        case .guide: return "sparkles"
         }
     }
 
     static var visibleCases: [SettingsSection] {
-        [.account, .accounts, .content]
+        [.account, .accounts, .content, .guide]
     }
 }
 
@@ -797,5 +812,231 @@ private struct AccountRow: View {
         }
         .buttonStyle(.card)
         .accessibilityHint(isActive ? "Current account" : "Switch to this account")
+    }
+}
+
+// MARK: - Guide (AI) panel
+
+/// Settings for AI clean-up of the TV guide via OpenRouter, with live progress.
+private struct GuideAIPanel: View {
+    let onSetKey: () -> Void
+    let onChangeModel: () -> Void
+
+    private var formatter: EPGFormatter { .shared }
+
+    @State private var testState: TestState = .idle
+
+    private enum TestState: Equatable {
+        case idle
+        case running
+        case success(String)
+        case failure(String)
+    }
+
+    var body: some View {
+        SettingsPanel(
+            title: "Guide (AI)",
+            subtitle: formatter.isActive ? "On · \(formatter.model)" : "Off"
+        ) {
+            VStack(alignment: .leading, spacing: 24) {
+                Toggle(isOn: Binding(
+                    get: { formatter.isEnabled },
+                    set: { formatter.setEnabled($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Tidy up the TV guide with AI")
+                            .font(.body)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("Fixes messy programme titles, pulls out episode numbers and genres, and shortens long descriptions.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                connectionCard
+                    .focusSection()
+
+                statusCard
+                    .focusSection()
+
+                Label(
+                    "Only programme titles and descriptions are sent to OpenRouter — never your account details or stream links. OpenRouter charges your account for each request.",
+                    systemImage: "lock.shield"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: Connection
+
+    private var connectionCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("OpenRouter API key")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(formatter.apiKeyHint.map { "••••\($0)" } ?? String(localized: "Not set"))
+                        .font(.callout.monospaced())
+                        .foregroundStyle(Color.textPrimary)
+                }
+                Spacer(minLength: 12)
+                Button(formatter.hasAPIKey ? "Change Key" : "Set Key", action: onSetKey)
+                    .buttonStyle(.glass)
+                if formatter.hasAPIKey {
+                    Button("Remove", role: .destructive) {
+                        formatter.removeAPIKey()
+                        testState = .idle
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Model")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(formatter.model)
+                        .font(.callout.monospaced())
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 12)
+                Button("Change", action: onChangeModel)
+                    .buttonStyle(.glass)
+            }
+
+            HStack(spacing: 16) {
+                Button(action: runTest) {
+                    HStack(spacing: 10) {
+                        if testState == .running {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "bolt.horizontal.circle")
+                        }
+                        Text("Test Connection")
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.glass)
+                .disabled(!formatter.hasAPIKey || testState == .running)
+
+                testResult
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: Radius.card)
+    }
+
+    @ViewBuilder
+    private var testResult: some View {
+        switch testState {
+        case .idle, .running:
+            EmptyView()
+        case .success(let title):
+            Label("Works — sample became “\(title)”", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .lineLimit(2)
+        case .failure(let message):
+            Label(message, systemImage: "xmark.octagon.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(2)
+        }
+    }
+
+    private func runTest() {
+        testState = .running
+        Task {
+            do {
+                testState = .success(try await formatter.testConnection())
+            } catch {
+                testState = .failure(error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: Status
+
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("STATUS")
+                .font(.caption2.bold())
+                .tracking(1.2)
+                .foregroundStyle(.secondary)
+
+            if formatter.isRunning {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles")
+                        .symbolEffect(.pulse, options: .repeating)
+                    Text("Formatting guide…")
+                    Spacer()
+                    Text("\(min(formatter.runCompleted + formatter.runFailed, formatter.runTotal)) of \(formatter.runTotal)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .font(.callout)
+                ProgressView(value: formatter.runFraction)
+                    .progressViewStyle(.linear)
+                    .tint(Color.progressFill)
+                    .animation(.smooth(duration: 0.3), value: formatter.runFraction)
+            } else if formatter.runTotal > 0 {
+                Text(formatter.runFailed > 0
+                     ? "Last run: \(formatter.runCompleted) formatted, \(formatter.runFailed) failed"
+                     : "Last run: \(formatter.runCompleted) formatted")
+                    .font(.callout)
+            } else {
+                Text(formatter.isActive
+                     ? "Idle. Programmes are formatted as they appear in Live TV."
+                     : formatter.hasAPIKey ? "Turn on the toggle above to start." : "Add an OpenRouter API key to start.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 28) {
+                stat("Cached", "\(formatter.cachedCount)")
+                stat("Sent this session", "\(formatter.sessionSent) / \(EPGFormatter.sessionLimit)")
+                stat("Tokens this session", formatter.sessionTokens.formatted())
+            }
+
+            if let error = formatter.lastError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 16) {
+                if formatter.isPaused {
+                    Button("Resume") { formatter.resume() }
+                        .buttonStyle(.glassProminent)
+                }
+                Button("Clear Cache", role: .destructive) { formatter.clearCache() }
+                    .buttonStyle(.glass)
+                    .disabled(formatter.cachedCount == 0)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: Radius.card)
+    }
+
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(Color.textPrimary)
+        }
     }
 }

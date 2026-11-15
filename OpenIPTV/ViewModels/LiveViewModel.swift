@@ -78,6 +78,8 @@ final class LiveViewModel {
             guard !Task.isCancelled, selectedChannel?.streamId == streamId else { return }
             guide = listings
             isGuideLoading = false
+            // Now + next two are what the preview pane shows.
+            EPGFormatter.shared.request(Array(listings.prefix(3)))
         }
     }
 

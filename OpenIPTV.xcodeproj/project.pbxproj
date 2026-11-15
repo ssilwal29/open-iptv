@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE2C55FA29E879637E7DDF /* EPGFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE74AF4CFB50751087598D /* EPGFormatterTests.swift */; };
+		C0DE66E906438ED5A68FC4A3 /* GuideAIViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DED0FB999669D9D564D176 /* GuideAIViews.swift */; };
+		C0DE4A317030AA05DE0EF2C0 /* EPGFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEE42E6ACC5CC9E160ABA3 /* EPGFormatter.swift */; };
+		C0DEB9868E54985916C51A18 /* OpenRouterClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE6A1F88D2BDBA202189D1 /* OpenRouterClient.swift */; };
 		C0DEB41FCE1B48E50524A78A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DEFC02DE27F1DE33666FAF /* Localizable.xcstrings */; };
 		C0DE80817A85FABFE2D610D0 /* EPGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE919695A56500434224B1 /* EPGTests.swift */; };
 		C0DE97CF080C559BF0E593B9 /* AccountDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */; };
@@ -121,6 +125,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0DE74AF4CFB50751087598D /* EPGFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGFormatterTests.swift; sourceTree = "<group>"; };
+		C0DED0FB999669D9D564D176 /* GuideAIViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideAIViews.swift; sourceTree = "<group>"; };
+		C0DEE42E6ACC5CC9E160ABA3 /* EPGFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGFormatter.swift; sourceTree = "<group>"; };
+		C0DE6A1F88D2BDBA202189D1 /* OpenRouterClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterClient.swift; sourceTree = "<group>"; };
 		C0DEFC02DE27F1DE33666FAF /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		C0DE7F6836A6802B5EE0E462 /* OpenIPTVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenIPTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0DE919695A56500434224B1 /* EPGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGTests.swift; sourceTree = "<group>"; };
@@ -236,6 +244,7 @@
 		C0DE0B926871BF2496EB76E6 /* OpenIPTVTests */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE74AF4CFB50751087598D /* EPGFormatterTests.swift */,
 				C0DE919695A56500434224B1 /* EPGTests.swift */,
 				C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */,
 				C0DEB0F4C5B7191549B5993F /* TopShelfLinkTests.swift */,
@@ -308,6 +317,8 @@
 		B2A000232C600001003DD87F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C0DEE42E6ACC5CC9E160ABA3 /* EPGFormatter.swift */,
+				C0DE6A1F88D2BDBA202189D1 /* OpenRouterClient.swift */,
 				C0DE8E126D357E249CA960FC /* EPGCache.swift */,
 				B2A0001B2C600001003DD87F /* AppError.swift */,
 				B2A0001D2C600001003DD87F /* XtreamCredentials.swift */,
@@ -356,6 +367,7 @@
 		B2F052722C38C2CC0064FBE7 /* OpenIPTV */ = {
 			isa = PBXGroup;
 			children = (
+				C0DED0FB999669D9D564D176 /* GuideAIViews.swift */,
 				C0DE7AF53575B961709941A2 /* AccountSheets.swift */,
 				B2F052732C38C2CC0064FBE7 /* OpenIPTVApp.swift */,
 				B2F0528E2C38C7E20064FBE7 /* ContentView.swift */,
@@ -561,6 +573,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE2C55FA29E879637E7DDF /* EPGFormatterTests.swift in Sources */,
 				C0DE80817A85FABFE2D610D0 /* EPGTests.swift in Sources */,
 				C0DE97CF080C559BF0E593B9 /* AccountDecodingTests.swift in Sources */,
 				C0DE71865A52C0C015BDF257 /* TopShelfLinkTests.swift in Sources */,
@@ -582,6 +595,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE66E906438ED5A68FC4A3 /* GuideAIViews.swift in Sources */,
+				C0DE4A317030AA05DE0EF2C0 /* EPGFormatter.swift in Sources */,
+				C0DEB9868E54985916C51A18 /* OpenRouterClient.swift in Sources */,
 				C0DEF6EF7687448278DA0D7E /* TopShelfPublisher.swift in Sources */,
 				C0DEE9D1E61DBD7479D513E6 /* TopShelfShared.swift in Sources */,
 				C0DE492AB3CAE46E59E44811 /* AccountSheets.swift in Sources */,

@@ -120,6 +120,21 @@ Catch-up (`CatchupView`, channels with `tv_archive == 1`) lists
 `/timeshift/{user}/{pass}/{minutes}/{yyyy-MM-dd:HH-mm}/{id}.m3u8`, using the panel's
 server-local start string verbatim.
 
+**AI guide formatting (optional, off by default).** `EPGFormatter` (`@MainActor
+@Observable` singleton) tidies guide text through OpenRouter (`OpenRouterClient`,
+default model `google/gemini-3.8-flash`, strict JSON-schema output with a no-schema
+retry on HTTP 400). Views call `request(_:)` for listings they show and render
+`display(for:)` (raw text until the formatted version arrives). Requests are
+debounced into batches of 25 (≤2 in flight), deduplicated by a SHA-256 of the text
+(`EPGFormatterPrompt.cacheKey`, includes a prompt `version`), and cached on disk in
+Caches. Fatal errors (bad key, no credits, unknown model), 3 consecutive failures, or
+the per-session cap (`sessionLimit`) pause it until `resume()`/a settings change.
+Only programme titles/descriptions are sent — never credentials or stream URLs. The
+API key is Keychain-only (service `io.OpenIPTV.openrouter`); enable flag and model
+live in UserDefaults (`epgAI.*`). Settings → Guide (AI) holds the controls and
+status; `EPGFormattingStatus` is the progress pill in Live TV and Catch-up.
+`OpenRouterClient` is the only network call outside `IPTVRepository`.
+
 ### Video Playback
 
 VOD covers present `PlaybackScreen(playback:)` (a `ResolvedPlayback` with Info-panel
@@ -152,8 +167,9 @@ catalog; Xcode fills it on build. No translations ship yet.
 
 ## Key Patterns
 
-- Network calls go through `IPTVRepository` only; views never instantiate
-  `XtreamAPIService` directly. It's injected via `\.iptvRepository`.
+- Xtream network calls go through `IPTVRepository` only; views never instantiate
+  `XtreamAPIService` directly. It's injected via `\.iptvRepository`. The one other
+  network client is `OpenRouterClient`, used only by `EPGFormatter`.
 - All networking and batch persistence is `async/await`. `DispatchQueue` use is
   confined to UIKit/AVFoundation bridging.
 - tvOS focus uses `@FocusState`/`.focused()`; `LiveView` uses `.focusSection()` for

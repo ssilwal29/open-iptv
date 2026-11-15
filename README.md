@@ -23,6 +23,9 @@ solid base. See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Movies, TV Series (seasons + episodes), and Live TV**
 - **Live TV guide** — what's on now and next for each channel, with progress
 - **Catch-up** — replay archived programmes on channels your provider records
+- **AI guide clean-up (optional)** — bring your own OpenRouter key to tidy messy
+  programme titles, pull out episode numbers and genres, and shorten descriptions
+  (default model `google/gemini-3.8-flash`; only guide text is sent)
 - **Favorite channels** — pinned at the top of the Live TV sidebar
 - **Channel switching** — Previous/Next Channel from the full-screen player
 - **Up Next** — the next episode starts automatically (with a countdown you can cancel)

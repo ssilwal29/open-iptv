@@ -129,6 +129,11 @@ struct LiveView: View {
                 .padding(.bottom, 40)
                 .focusScope(liveScope)
             }
+            .overlay(alignment: .bottomTrailing) {
+                EPGFormattingStatus()
+                    .padding(.trailing, 72)
+                    .padding(.bottom, 56)
+            }
             .background(AmbientBackdrop())
             .onAppear {
                 if viewModel.selectedCategory == nil {
@@ -650,7 +655,7 @@ private struct ChannelRow: View {
     let onSelect: () -> Void
     @State private var isAnimating = false
     /// Programme on air now, from the guide (nil until loaded / no guide).
-    @State private var nowTitle: String?
+    @State private var nowListing: EPGListing?
 
     @Environment(\.iptvRepository) private var repository
 
@@ -724,21 +729,26 @@ private struct ChannelRow: View {
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
         .task(id: channel.streamId) {
-            nowTitle = nil
+            nowListing = nil
             guard channel.hasGuide, let repository else { return }
             // Short delay so rows flicked past while scrolling never fetch.
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
             let upcoming = await EPGCache.shared.upcoming(streamId: channel.streamId, repository: repository)
             guard !Task.isCancelled else { return }
-            nowTitle = upcoming.first { $0.isAiring() }?.title
+            nowListing = upcoming.first { $0.isAiring() }
+            if let nowListing {
+                EPGFormatter.shared.request([nowListing])
+            }
         }
     }
 
-    /// "Channel 12 · Evening News" once the guide has loaded.
+    /// "Channel 12 · Evening News" once the guide has loaded (AI-formatted
+    /// title when available).
     private var secondaryText: String {
-        if let nowTitle, !nowTitle.isEmpty {
-            return "Channel \(channel.num)  ·  \(nowTitle)"
+        if let nowListing {
+            let title = EPGFormatter.shared.display(for: nowListing).title
+            if !title.isEmpty { return "Channel \(channel.num)  ·  \(title)" }
         }
         return "Channel \(channel.num)"
     }
@@ -968,14 +978,26 @@ private struct GuideSummary: View {
                             .foregroundStyle(.secondary)
                     }
                 } else if let current {
+                    let shown = EPGFormatter.shared.display(for: current)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("NOW")
-                            .font(.caption2.bold())
-                            .tracking(1.5)
-                            .foregroundStyle(Color.accentColor)
-                        Text(current.title.isEmpty ? "Untitled programme" : current.title)
+                        HStack(spacing: 8) {
+                            Text("NOW")
+                                .font(.caption2.bold())
+                                .tracking(1.5)
+                                .foregroundStyle(Color.accentColor)
+                            if shown.isFormatted { FormattedBadge() }
+                        }
+                        Text(shown.title.isEmpty ? "Untitled programme" : shown.title)
                             .font(.callout.weight(.semibold))
                             .lineLimit(2)
+                        GuideChips(display: shown)
+                        if shown.isFormatted, !shown.summary.isEmpty {
+                            Text(shown.summary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         HStack(spacing: 12) {
                             ProgressView(value: current.progress(at: date))
                                 .tint(Color.progressFill)
@@ -993,7 +1015,8 @@ private struct GuideSummary: View {
                                 .monospacedDigit()
                                 .foregroundStyle(.secondary)
                                 .frame(width: 90, alignment: .leading)
-                            Text(listing.title.isEmpty ? "Untitled programme" : listing.title)
+                            let title = EPGFormatter.shared.display(for: listing).title
+                            Text(title.isEmpty ? "Untitled programme" : title)
                                 .font(.caption)
                                 .lineLimit(1)
                         }
@@ -1008,6 +1031,29 @@ private struct GuideSummary: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// Episode / genre / tag chips from AI formatting. Empty when there are none.
+struct GuideChips: View {
+    let display: EPGDisplay
+
+    private var chips: [String] {
+        ([display.episode, display.genre].compactMap { $0 } + display.tags)
+    }
+
+    var body: some View {
+        if !chips.isEmpty {
+            HStack(spacing: 8) {
+                ForEach(chips, id: \.self) { chip in
+                    Text(chip)
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.18), in: Capsule())
+                }
+            }
         }
     }
 }

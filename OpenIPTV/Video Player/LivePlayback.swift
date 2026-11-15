@@ -43,8 +43,8 @@ struct LiveFullscreenPlayer: View {
                     isLive: true,
                     metadata: PlaybackMetadata(
                         title: channel.name,
-                        subtitle: programme?.title ?? "Channel \(channel.num)",
-                        description: programme?.description,
+                        subtitle: programme.map { EPGFormatter.shared.display(for: $0).title } ?? "Channel \(channel.num)",
+                        description: programme.map { EPGFormatter.shared.display(for: $0).summary },
                         artworkURL: channel.streamIconURL
                     ),
                     transportActions: transportActions
@@ -58,6 +58,7 @@ struct LiveFullscreenPlayer: View {
             let upcoming = await EPGCache.shared.upcoming(streamId: channel.streamId, repository: repository)
             guard !Task.isCancelled else { return }
             programme = upcoming.first { $0.isAiring() }
+            if let programme { EPGFormatter.shared.request([programme]) }
         }
     }
 
@@ -130,6 +131,10 @@ struct CatchupView: View {
                             .font(.heroSubtitle)
                             .foregroundStyle(.secondary)
                     }
+
+                    Spacer(minLength: 24)
+
+                    EPGFormattingStatus()
                 }
 
                 content
@@ -193,13 +198,14 @@ struct CatchupView: View {
             return
         }
         failedListingId = nil
+        let shown = EPGFormatter.shared.display(for: listing)
         playback = ResolvedPlayback(
             url: url,
-            title: listing.title,
+            title: shown.title,
             metadata: PlaybackMetadata(
-                title: listing.title,
+                title: shown.title,
                 subtitle: "\(channel.name) · \(EPGFormat.timeRange(listing))",
-                description: listing.description,
+                description: shown.summary,
                 artworkURL: channel.streamIconURL
             )
         )
@@ -220,15 +226,19 @@ private struct CatchupRow: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 230, alignment: .leading)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(listing.title.isEmpty ? "Untitled programme" : listing.title)
-                        .font(.body.weight(.semibold))
-                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Text(shown.title.isEmpty ? "Untitled programme" : shown.title)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                        if shown.isFormatted { FormattedBadge() }
+                    }
+                    GuideChips(display: shown)
                     if failed {
                         Text("This programme can't be played from the archive.")
                             .font(.caption)
                             .foregroundStyle(.red)
-                    } else if !listing.description.isEmpty {
-                        Text(listing.description)
+                    } else if !shown.summary.isEmpty {
+                        Text(shown.summary)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -244,7 +254,12 @@ private struct CatchupRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.card)
+        // Rows format lazily as they scroll into view, so a long archive
+        // only costs what the viewer actually looks at.
+        .onAppear { EPGFormatter.shared.request([listing]) }
     }
+
+    private var shown: EPGDisplay { EPGFormatter.shared.display(for: listing) }
 }
 
 // MARK: - Formatting
