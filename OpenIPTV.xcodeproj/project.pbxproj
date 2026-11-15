@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE80817A85FABFE2D610D0 /* EPGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE919695A56500434224B1 /* EPGTests.swift */; };
+		C0DE97CF080C559BF0E593B9 /* AccountDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */; };
+		C0DE71865A52C0C015BDF257 /* TopShelfLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEB0F4C5B7191549B5993F /* TopShelfLinkTests.swift */; };
+		C0DEFCCF2C5CD68B3A49AC29 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE41B8C9F3C5660AE2088B /* ModelTests.swift */; };
+		C0DE49B20185B6901D5D6357 /* CatalogDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE965D1D50E1107DDBF6BF /* CatalogDecodingTests.swift */; };
 		C0DE8C07CF6DE7ADCA29ED53 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEDB489709709699416E89 /* ContentProvider.swift */; };
 		C0DEE656E5D97B915F8D9B33 /* TopShelfShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE2009424B722A7EFC9F99 /* TopShelfShared.swift */; };
 		C0DE8B8D988D59D19DCC4FF5 /* OpenIPTVTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C0DE411D43601D8B3B484277 /* OpenIPTVTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
@@ -84,6 +89,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C0DE5626E1A5E28658938445 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2F052682C38C2CB0064FBE7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B2F0526F2C38C2CC0064FBE7;
+			remoteInfo = OpenIPTV;
+		};
 		C0DEE65800BD7B0F7881A293 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B2F052682C38C2CB0064FBE7 /* Project object */;
@@ -108,6 +120,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0DE7F6836A6802B5EE0E462 /* OpenIPTVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenIPTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0DE919695A56500434224B1 /* EPGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGTests.swift; sourceTree = "<group>"; };
+		C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDecodingTests.swift; sourceTree = "<group>"; };
+		C0DEB0F4C5B7191549B5993F /* TopShelfLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopShelfLinkTests.swift; sourceTree = "<group>"; };
+		C0DE41B8C9F3C5660AE2088B /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+		C0DE965D1D50E1107DDBF6BF /* CatalogDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDecodingTests.swift; sourceTree = "<group>"; };
 		C0DE411D43601D8B3B484277 /* OpenIPTVTopShelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpenIPTVTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0DEDB489709709699416E89 /* ContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentProvider.swift; sourceTree = "<group>"; };
 		C0DEA200FF22D6F3927B714E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -187,6 +205,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C0DEB347A03587A9F1D01DF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C0DEC604FFDB08E52BDE6C40 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -206,6 +231,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C0DE0B926871BF2496EB76E6 /* OpenIPTVTests */ = {
+			isa = PBXGroup;
+			children = (
+				C0DE919695A56500434224B1 /* EPGTests.swift */,
+				C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */,
+				C0DEB0F4C5B7191549B5993F /* TopShelfLinkTests.swift */,
+				C0DE41B8C9F3C5660AE2088B /* ModelTests.swift */,
+				C0DE965D1D50E1107DDBF6BF /* CatalogDecodingTests.swift */,
+			);
+			path = OpenIPTVTests;
+			sourceTree = "<group>";
+		};
 		C0DEFF2B8A656AC2D4376CCC /* OpenIPTVTopShelf */ = {
 			isa = PBXGroup;
 			children = (
@@ -298,6 +335,7 @@
 			isa = PBXGroup;
 			children = (
 				B2F052722C38C2CC0064FBE7 /* OpenIPTV */,
+				C0DE0B926871BF2496EB76E6 /* OpenIPTVTests */,
 				C0DEFF2B8A656AC2D4376CCC /* OpenIPTVTopShelf */,
 				B2F052712C38C2CC0064FBE7 /* Products */,
 			);
@@ -307,6 +345,7 @@
 			isa = PBXGroup;
 			children = (
 				B2F052702C38C2CC0064FBE7 /* OpenIPTV.app */,
+				C0DE7F6836A6802B5EE0E462 /* OpenIPTVTests.xctest */,
 				C0DE411D43601D8B3B484277 /* OpenIPTVTopShelf.appex */,
 			);
 			name = Products;
@@ -379,6 +418,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C0DE2E2C5F2C2CCE58D9B4F0 /* OpenIPTVTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0DE89A1D1ACFDF0DAD3F10E /* Build configuration list for PBXNativeTarget "OpenIPTVTests" */;
+			buildPhases = (
+				C0DE9C4B47757C02502DC216 /* Sources */,
+				C0DEB347A03587A9F1D01DF9 /* Frameworks */,
+				C0DEBDCCD5D1333A0337AE88 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C0DE1DD84E3BDAEE468D16F6 /* PBXTargetDependency */,
+			);
+			name = OpenIPTVTests;
+			productName = OpenIPTVTests;
+			productReference = C0DE7F6836A6802B5EE0E462 /* OpenIPTVTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		C0DE6390D7D85AF55A94D343 /* OpenIPTVTopShelf */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C0DE57B65F9CF8A3CA0DD996 /* Build configuration list for PBXNativeTarget "OpenIPTVTopShelf" */;
@@ -432,6 +489,10 @@
 					B2F0526F2C38C2CC0064FBE7 = {
 						CreatedOnToolsVersion = 15.4;
 					};
+					C0DE2E2C5F2C2CCE58D9B4F0 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = B2F0526F2C38C2CC0064FBE7;
+					};
 					C0DE6390D7D85AF55A94D343 = {
 						CreatedOnToolsVersion = 26.0;
 					};
@@ -454,12 +515,20 @@
 			projectRoot = "";
 			targets = (
 				B2F0526F2C38C2CC0064FBE7 /* OpenIPTV */,
+				C0DE2E2C5F2C2CCE58D9B4F0 /* OpenIPTVTests */,
 				C0DE6390D7D85AF55A94D343 /* OpenIPTVTopShelf */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C0DEBDCCD5D1333A0337AE88 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C0DE6B1262AEFA7566F011D4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -484,6 +553,18 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C0DE9C4B47757C02502DC216 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0DE80817A85FABFE2D610D0 /* EPGTests.swift in Sources */,
+				C0DE97CF080C559BF0E593B9 /* AccountDecodingTests.swift in Sources */,
+				C0DE71865A52C0C015BDF257 /* TopShelfLinkTests.swift in Sources */,
+				C0DEFCCF2C5CD68B3A49AC29 /* ModelTests.swift in Sources */,
+				C0DE49B20185B6901D5D6357 /* CatalogDecodingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C0DEEBC5410EA0D5C3297437 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -565,6 +646,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C0DE1DD84E3BDAEE468D16F6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B2F0526F2C38C2CC0064FBE7 /* OpenIPTV */;
+			targetProxy = C0DE5626E1A5E28658938445 /* PBXContainerItemProxy */;
+		};
 		C0DE45714208DF983080AB2E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C0DE6390D7D85AF55A94D343 /* OpenIPTVTopShelf */;
@@ -573,6 +659,42 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		C0DECB66A98C3F318F82CACB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56YZ9Z28D3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.OpenIPTV.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenIPTV.app/OpenIPTV";
+			};
+			name = Debug;
+		};
+		C0DE5FF1D7FFC1BE76AB93EA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 56YZ9Z28D3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.OpenIPTV.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenIPTV.app/OpenIPTV";
+			};
+			name = Release;
+		};
 		C0DE389F5A71FABB1D53153D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -809,6 +931,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C0DE89A1D1ACFDF0DAD3F10E /* Build configuration list for PBXNativeTarget "OpenIPTVTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0DECB66A98C3F318F82CACB /* Debug */,
+				C0DE5FF1D7FFC1BE76AB93EA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C0DE57B65F9CF8A3CA0DD996 /* Build configuration list for PBXNativeTarget "OpenIPTVTopShelf" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
