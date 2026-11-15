@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE8E126D357E249CA960FC /* EPGCache.swift */; };
+		C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEDF7487BDEDF97A796A50 /* EPG.swift */; };
 		B20268B82C41F46D003DD87F /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20268B72C41F46D003DD87F /* SetupView.swift */; };
 		B20268BB2C42270A003DD87F /* ModelDataContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20268BA2C42270A003DD87F /* ModelDataContainer.swift */; };
 		B20268C52C47620D003DD87F /* Serie.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20268C42C47620D003DD87F /* Serie.swift */; };
@@ -74,6 +76,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE8E126D357E249CA960FC /* EPGCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGCache.swift; sourceTree = "<group>"; };
+		C0DEDF7487BDEDF97A796A50 /* EPG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPG.swift; sourceTree = "<group>"; };
 		B20268B72C41F46D003DD87F /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		B20268BA2C42270A003DD87F /* ModelDataContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelDataContainer.swift; sourceTree = "<group>"; };
 		B20268C42C47620D003DD87F /* Serie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Serie.swift; sourceTree = "<group>"; };
@@ -178,6 +182,7 @@
 		B20268D02C49D729003DD87F /* Codables */ = {
 			isa = PBXGroup;
 			children = (
+				C0DEDF7487BDEDF97A796A50 /* EPG.swift */,
 				B267AE702C40987C0065F32E /* Account.swift */,
 				B20268C82C47670F003DD87F /* Category.swift */,
 				B20268CA2C476AA3003DD87F /* Movie.swift */,
@@ -201,6 +206,7 @@
 		B2A000232C600001003DD87F /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE8E126D357E249CA960FC /* EPGCache.swift */,
 				B2A0001B2C600001003DD87F /* AppError.swift */,
 				B2A0001D2C600001003DD87F /* XtreamCredentials.swift */,
 				B2A0001F2C600001003DD87F /* IPTVRepository.swift */,
@@ -385,6 +391,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */,
+				C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */,
 				B2F0529F2C39837D0064FBE7 /* MovieView.swift in Sources */,
 				B2F0528D2C38C7B00064FBE7 /* ModelContext+Extensions.swift in Sources */,
 				B2F052AE2C3E390A0064FBE7 /* VideoPlayer+UIViewRepresentable.swift in Sources */,

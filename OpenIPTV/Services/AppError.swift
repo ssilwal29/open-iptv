@@ -5,6 +5,7 @@ enum AppError: LocalizedError {
     case invalidResponse(statusCode: Int)
     case decodingFailed(Error)
     case credentialsMissing
+    case authenticationFailed
     case networkUnavailable
     case retriesExhausted(underlying: Error)
 
@@ -18,6 +19,8 @@ enum AppError: LocalizedError {
             return "Couldn't read the server's data — \(Self.decodeReason(error)). The response may be in an unexpected format."
         case .credentialsMissing:
             return "No account configured. Please set up your IPTV account first."
+        case .authenticationFailed:
+            return "The server rejected that username or password."
         case .networkUnavailable:
             return "No internet connection. Reconnect and try again."
         case .retriesExhausted(let underlying):
