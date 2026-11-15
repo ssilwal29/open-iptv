@@ -22,6 +22,15 @@ final class LiveEntity {
 
     var streamIconURL: URL? { streamIcon.secureURL }
 
+    /// Xtream sends `is_adult` as "1"/"0".
+    var isAdult: Bool { adult == "1" }
+
+    /// Channels without an EPG id never have guide data, so skip the request.
+    var hasGuide: Bool { !(epgChannelId ?? "").isEmpty }
+
+    /// Panel keeps a catch-up archive for this channel.
+    var hasCatchup: Bool { tvArchive == 1 }
+
     init(
         streamId: Int,
         num: Int,

@@ -70,9 +70,9 @@ final class PlaybackProgress {
         let total = Int(remaining.rounded())
         let hours = total / 3600
         let minutes = (total % 3600) / 60
-        if hours > 0 { return "\(hours)h \(minutes)m left" }
-        if minutes > 0 { return "\(minutes) min left" }
-        return "Less than a minute left"
+        if hours > 0 { return String(localized: "\(hours)h \(minutes)m left") }
+        if minutes > 0 { return String(localized: "\(minutes) min left") }
+        return String(localized: "Less than a minute left")
     }
 }
 

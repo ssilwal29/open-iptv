@@ -21,6 +21,9 @@ final class Profile {
     var lastSyncedAt: Date?
     var syncIntervalDays: Int
     var hideAdultContent: Bool
+    /// Favourite live channels (stream ids), in the order they were added.
+    /// Optional: added in schema 1.7.0 (lightweight migration needs optional).
+    var favoriteLiveStreamIds: [Int]? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \Server.profile) var server: Server?
     @Relationship(deleteRule: .nullify, inverse: \CategoryEntity.profile) var categories: [CategoryEntity] = []
@@ -72,6 +75,22 @@ final class Profile {
     /// injected repository has been rebuilt for this profile before bootstrap.
     var repositoryIdentity: String { "\(serverURL)|\(username)" }
 
+    // MARK: Favourite channels
+
+    func isFavoriteLive(_ streamId: Int) -> Bool {
+        favoriteLiveStreamIds?.contains(streamId) ?? false
+    }
+
+    func toggleFavoriteLive(_ streamId: Int) {
+        var ids = favoriteLiveStreamIds ?? []
+        if let index = ids.firstIndex(of: streamId) {
+            ids.remove(at: index)
+        } else {
+            ids.append(streamId)
+        }
+        favoriteLiveStreamIds = ids
+    }
+
 }
 
 extension Profile {
@@ -107,6 +126,80 @@ extension Profile {
     func clearPassword() {
         KeychainHelper.delete(service: KeychainConstants.service, account: id)
         password = ""
+    }
+}
+
+// MARK: - Subscription expiry
+
+extension Profile {
+    /// `expiresAt` holds the panel's Unix `exp_date`; empty / "null" / "0"
+    /// means the account never expires.
+    var expiryDate: Date? {
+        guard let seconds = TimeInterval(expiresAt), seconds > 0 else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    /// Whole days until expiry (negative once expired); nil when unlimited.
+    func daysUntilExpiry(from now: Date = .now) -> Int? {
+        guard let expiry = expiryDate else { return nil }
+        return Int((expiry.timeIntervalSince(now) / 86_400).rounded(.down))
+    }
+
+    /// Expired, or expiring within `ProfileExpiry.warningDays`.
+    var isExpiringSoon: Bool {
+        guard let days = daysUntilExpiry() else { return false }
+        return days < ProfileExpiry.warningDays
+    }
+}
+
+enum ProfileExpiry {
+    static let warningDays = 7
+
+    /// "Expires today", "Expires in 3 days", "Expired 2 days ago", "Never expires".
+    static func summary(for profile: Profile, now: Date = .now) -> String {
+        guard let expiry = profile.expiryDate else { return String(localized: "Never expires") }
+        if expiry <= now {
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .full
+            return String(localized: "Expired \(formatter.localizedString(for: expiry, relativeTo: now))")
+        }
+        let days = profile.daysUntilExpiry(from: now) ?? 0
+        switch days {
+        case 0: return String(localized: "Expires today")
+        case 1: return String(localized: "Expires tomorrow")
+        default: return String(localized: "Expires in \(days) days")
+        }
+    }
+}
+
+// MARK: - Parental PIN
+
+/// A per-profile 4-digit PIN guarding "Hide adult content". Kept in the
+/// Keychain (like the account password), never in SwiftData.
+extension Profile {
+    private enum PINKeychain {
+        static let service = "io.OpenIPTV.profile.parentalPIN"
+    }
+
+    static let parentalPINLength = 4
+
+    var hasParentalPIN: Bool {
+        KeychainHelper.read(service: PINKeychain.service, account: id) != nil
+    }
+
+    func verifyParentalPIN(_ candidate: String) -> Bool {
+        guard let data = KeychainHelper.read(service: PINKeychain.service, account: id),
+              let stored = String(data: data, encoding: .utf8)
+        else { return false }
+        return stored == candidate
+    }
+
+    func setParentalPIN(_ pin: String) {
+        try? KeychainHelper.save(Data(pin.utf8), service: PINKeychain.service, account: id)
+    }
+
+    func clearParentalPIN() {
+        KeychainHelper.delete(service: PINKeychain.service, account: id)
     }
 }
 

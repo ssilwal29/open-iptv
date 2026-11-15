@@ -42,11 +42,15 @@ final class XtreamAPIService: IPTVRepository {
             params: [],
             session: .shared
         )
+        let account: Account
         do {
-            return try JSONDecoder().decode(Account.self, from: data)
+            account = try JSONDecoder().decode(Account.self, from: data)
         } catch {
             throw AppError.decodingFailed(error)
         }
+        // Panels answer bad credentials with HTTP 200 and `"auth": 0`.
+        guard account.info.isAuthenticated else { throw AppError.authenticationFailed }
+        return account
     }
 
     // MARK: - IPTVRepository
@@ -83,6 +87,23 @@ final class XtreamAPIService: IPTVRepository {
         try await fetch([Live].self, action: "get_live_streams")
     }
 
+    func fetchAccount() async throws -> Account {
+        try await fetch(Account.self, action: nil)
+    }
+
+    func fetchShortEPG(streamId: Int, limit: Int) async throws -> [EPGListing] {
+        try await fetch(EPGResponse.self, action: "get_short_epg", extra: [
+            URLQueryItem(name: "stream_id", value: "\(streamId)"),
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]).listings
+    }
+
+    func fetchEPGArchive(streamId: Int) async throws -> [EPGListing] {
+        try await fetch(EPGResponse.self, action: "get_simple_data_table", extra: [
+            URLQueryItem(name: "stream_id", value: "\(streamId)")
+        ]).listings
+    }
+
     // MARK: - Stream URL Construction
 
     func movieStreamURL(streamId: Int, containerExtension: String) -> URL? {
@@ -108,14 +129,34 @@ final class XtreamAPIService: IPTVRepository {
         return URL(string: "https://\(host)/series/\(credentials.username)/\(credentials.password)/\(episodeId).\(containerExtension)")
     }
 
+    func catchupStreamURL(streamId: Int, listing: EPGListing) -> URL? {
+        Self.timeshiftURL(credentials: credentials, streamId: streamId, listing: listing)
+    }
+
+    /// `/timeshift/{user}/{pass}/{minutes}/{yyyy-MM-dd:HH-mm}/{id}.m3u8`.
+    /// The HLS variant is used because AVPlayer can't play the raw `.ts` one.
+    static func timeshiftURL(credentials: XtreamCredentials, streamId: Int, listing: EPGListing) -> URL? {
+        guard let start = listing.timeshiftStart, listing.durationMinutes > 0 else { return nil }
+        let host = normalizeHost(credentials.serverURL)
+        let user = pathEscaped(credentials.username)
+        let pass = pathEscaped(credentials.password)
+        return URL(string: "https://\(host)/timeshift/\(user)/\(pass)/\(listing.durationMinutes)/\(start)/\(streamId).m3u8")
+    }
+
+    private static func pathEscaped(_ value: String) -> String {
+        value.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? value
+    }
+
     // MARK: - Private
 
+    /// `action == nil` hits the bare `player_api.php` endpoint, which returns
+    /// the account payload.
     private func fetch<T: Decodable>(
         _ type: T.Type,
-        action: String,
+        action: String?,
         extra: [URLQueryItem] = []
     ) async throws -> T {
-        let params = [URLQueryItem(name: "action", value: action)] + extra
+        let params = (action.map { [URLQueryItem(name: "action", value: $0)] } ?? []) + extra
         do {
             let preferred = await schemeCache.get()
             let (scheme, data, _) = try await Self.requestWithFallback(

@@ -36,6 +36,13 @@ final class ContentViewModel {
         // Idempotent: a clean store sees no matching rows and this is free.
         PersistenceController.cleanupOrphans(in: context)
 
+        // Refresh status / expiry in the background so Settings and the
+        // expiry notice reflect today's state, not the day the account was added.
+        Task {
+            guard let account = try? await repository.fetchAccount() else { return }
+            context.updateAccountInfo(profileId: profileId, from: account)
+        }
+
         if hasCachedPlaylist {
             // Existing profile with cache — show tabs immediately, refresh
             // anything stale in the background.

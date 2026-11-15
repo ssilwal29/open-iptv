@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import OSLog
+import Nuke
 
 private let itemLogger = Logger(subsystem: "com.openiptv.app", category: "AVPlayerItem")
 
@@ -22,6 +23,12 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
     /// Periodic `(position, duration)` tick for resume-point persistence;
     /// `duration` is 0 when unknown. nil disables tracking (e.g. live).
     let onProgress: ((Double, Double) -> Void)?
+    /// Info-panel metadata; re-applied on update when it changes.
+    let metadata: PlaybackMetadata?
+    /// Extra transport-bar buttons (live channel up/down).
+    let transportActions: [PlayerTransportAction]
+    /// Fired on the main queue when the item plays to its end.
+    let onPlayedToEnd: (() -> Void)?
 
     /// - Parameters:
     ///   - useNativeLoading: when true (default), hand the raw URL to AVPlayer
@@ -42,6 +49,9 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
         useNativeLoading: Bool = true,
         isLive: Bool = false,
         resumeAt: Double? = nil,
+        metadata: PlaybackMetadata? = nil,
+        transportActions: [PlayerTransportAction] = [],
+        onPlayedToEnd: (() -> Void)? = nil,
         onProgress: ((Double, Double) -> Void)? = nil
     ) {
         self.url = url
@@ -51,6 +61,9 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
         self.isLive = isLive
         self.resumeAt = resumeAt
         self.onProgress = onProgress
+        self.metadata = metadata
+        self.transportActions = transportActions
+        self.onPlayedToEnd = onPlayedToEnd
 
         let asset: AVURLAsset
         if useNativeLoading {
@@ -115,10 +128,28 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
         vc.player = avplayer
+        if !transportActions.isEmpty {
+            vc.transportBarCustomMenuItems = transportActions.map { action in
+                UIAction(
+                    title: action.title,
+                    image: UIImage(systemName: action.systemImage),
+                    identifier: UIAction.Identifier(action.id)
+                ) { _ in action.handler() }
+            }
+        }
+        if let metadata {
+            context.coordinator.apply(metadata)
+        }
         return vc
     }
 
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) { }
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        // `self.playerItem` belongs to this (re-created) struct, not the item
+        // that's actually playing — the coordinator holds the live one.
+        if let metadata {
+            context.coordinator.apply(metadata)
+        }
+    }
 
     func makeCoordinator() -> Coordinator {
         let coordinator = Coordinator(playerItem)
@@ -151,6 +182,9 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
         }
         if let onProgress {
             coordinator.observeProgress(on: avplayer, every: 5, onProgress)
+        }
+        if let onPlayedToEnd {
+            coordinator.observeEnd(onPlayedToEnd)
         }
         return coordinator
     }
@@ -185,9 +219,80 @@ struct OpenIPTVPlayer: UIViewControllerRepresentable {
             }
         }
 
+        // MARK: End of item
+
+        private var endObserver: NSObjectProtocol?
+
+        func observeEnd(_ handler: @escaping () -> Void) {
+            endObserver = NotificationCenter.default.addObserver(
+                forName: AVPlayerItem.didPlayToEndTimeNotification,
+                object: item,
+                queue: .main
+            ) { _ in handler() }
+        }
+
+        // MARK: Info-panel metadata
+
+        private var appliedMetadata: PlaybackMetadata?
+        private var artworkData: Data?
+        private var artworkTask: Task<Void, Never>?
+
+        @MainActor
+        func apply(_ metadata: PlaybackMetadata) {
+            guard metadata != appliedMetadata else { return }
+            let artworkChanged = metadata.artworkURL != appliedMetadata?.artworkURL
+            appliedMetadata = metadata
+            if artworkChanged {
+                artworkData = nil
+                artworkTask?.cancel()
+                if let url = metadata.artworkURL {
+                    artworkTask = Task { @MainActor [weak self] in
+                        guard let image = try? await ImagePipeline.shared.image(for: url),
+                              let data = image.jpegData(compressionQuality: 0.85),
+                              !Task.isCancelled,
+                              let self,
+                              self.appliedMetadata?.artworkURL == url
+                        else { return }
+                        self.artworkData = data
+                        self.item.externalMetadata = Self.metadataItems(for: metadata, artwork: data)
+                    }
+                }
+            }
+            item.externalMetadata = Self.metadataItems(for: metadata, artwork: artworkData)
+        }
+
+        private static func metadataItems(for metadata: PlaybackMetadata, artwork: Data?) -> [AVMetadataItem] {
+            var items = [makeItem(.commonIdentifierTitle, metadata.title as NSString)]
+            if let subtitle = metadata.subtitle, !subtitle.isEmpty {
+                items.append(makeItem(.iTunesMetadataTrackSubTitle, subtitle as NSString))
+            }
+            if let description = metadata.description, !description.isEmpty {
+                items.append(makeItem(.commonIdentifierDescription, description as NSString))
+            }
+            if let artwork {
+                let item = AVMutableMetadataItem()
+                item.identifier = .commonIdentifierArtwork
+                item.value = artwork as NSData
+                item.dataType = kCMMetadataBaseDataType_JPEG as String
+                item.extendedLanguageTag = "und"
+                items.append(item.copy() as! AVMetadataItem)
+            }
+            return items
+        }
+
+        private static func makeItem(_ identifier: AVMetadataIdentifier, _ value: NSString) -> AVMetadataItem {
+            let item = AVMutableMetadataItem()
+            item.identifier = identifier
+            item.value = value
+            item.extendedLanguageTag = "und"
+            return item.copy() as! AVMetadataItem
+        }
+
         deinit {
             self.statusObserver?.invalidate()
             if let timeObserverToken { player?.removeTimeObserver(timeObserverToken) }
+            if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
+            artworkTask?.cancel()
         }
     }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import NukeUI
 
 private enum SearchDesign {
     static let topInset: CGFloat = 10
@@ -33,7 +34,7 @@ struct SearchView: View {
             .searchable(
                 text: $query,
                 placement: .automatic,
-                prompt: "Search Movies and Series"
+                prompt: "Search Movies, Series and Channels"
             )
             .mask(scrollFadeMask)
             .task(id: query) {
@@ -69,7 +70,7 @@ struct SearchView: View {
     @ViewBuilder
     private var content: some View {
         if appliedQuery.isEmpty {
-            SearchPlaceholder(title: "Search Movies and Series")
+            SearchPlaceholder(title: "Search Movies, Series and Channels")
         } else {
             // Dynamic-query child: filtering + sorting happen in SwiftData/SQLite
             // scoped to the active profile, so we never flatMap the whole library
@@ -100,6 +101,9 @@ private struct SearchPlaceholder: View {
 private struct SearchResultsView: View {
     @Query private var movies: [MovieEntity]
     @Query private var series: [SerieEntity]
+    @Query private var channels: [LiveEntity]
+
+    @State private var livePlayback: LivePlaybackRequest?
 
     private let query: String
 
@@ -119,10 +123,17 @@ private struct SearchResultsView: View {
                 && serie.name.localizedStandardContains(query)
         }
         _series = Query(filter: seriePredicate, sort: \SerieEntity.name)
+
+        let channelPredicate = #Predicate<LiveEntity> { live in
+            live.profile?.id == profileId
+                && (includeAdult || live.adult != "1")
+                && live.name.localizedStandardContains(query)
+        }
+        _channels = Query(filter: channelPredicate, sort: \LiveEntity.name)
     }
 
     var body: some View {
-        if movies.isEmpty && series.isEmpty {
+        if movies.isEmpty && series.isEmpty && channels.isEmpty {
             SearchPlaceholder(title: "No matches for \"\(query)\"")
         } else {
             results
@@ -155,6 +166,21 @@ private struct SearchResultsView: View {
                     }
                 }
 
+                if !channels.isEmpty {
+                    sectionHeader(title: "Channels", count: channels.count)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: PosterSize.rowSpacing) {
+                            ForEach(Array(channels.enumerated()), id: \.element.streamId) { index, channel in
+                                ChannelSearchTile(channel: channel) {
+                                    livePlayback = LivePlaybackRequest(channels: channels, startIndex: index)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    .scrollClipDisabled(true)
+                }
+
                 if !series.isEmpty {
                     sectionHeader(title: "Series", count: series.count)
                     LazyVGrid(columns: serieColumns, spacing: PosterSize.rowSpacing) {
@@ -170,6 +196,7 @@ private struct SearchResultsView: View {
             .padding(.top, 32)
         }
         .scrollClipDisabled(true)
+        .fullScreenCover(item: $livePlayback) { LiveFullscreenPlayer(request: $0) }
     }
 
     private func sectionHeader(title: String, count: Int) -> some View {
@@ -182,5 +209,37 @@ private struct SearchResultsView: View {
                 .monospacedDigit()
             Spacer()
         }
+    }
+}
+
+/// Live channel result: logo + name; plays full screen on select.
+private struct ChannelSearchTile: View {
+    let channel: LiveEntity
+    let onPlay: () -> Void
+
+    var body: some View {
+        Button(action: onPlay) {
+            VStack(spacing: 14) {
+                LazyImage(url: channel.streamIconURL) { state in
+                    if let image = state.image {
+                        image.resizable().scaledToFit()
+                    } else {
+                        Image(systemName: "tv")
+                            .font(.system(size: 44))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 140, height: 100)
+
+                Text(channel.name)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 220)
+            }
+            .padding(.vertical, 20)
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(.card)
     }
 }

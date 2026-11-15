@@ -11,8 +11,19 @@ final class LiveViewModel {
     var isPreviewLoading: Bool = false
     var searchText: String = ""
     var isRefreshing: Bool = false
+    /// Sidebar's "Favorites" entry is selected (instead of a category).
+    var showFavorites: Bool = false
+    /// Channels currently listed in the middle pane — the full-screen player
+    /// steps through these for Previous/Next Channel.
+    var channelList: [LiveEntity] = []
+    /// Now + upcoming programmes for `selectedChannel`.
+    var guide: [EPGListing] = []
+    var isGuideLoading: Bool = false
+    /// Full-screen request (preview pane's "Full Screen").
+    var fullscreen: LivePlaybackRequest?
 
     private var resolveTask: Task<Void, Never>?
+    private var guideTask: Task<Void, Never>?
 
     /// User-initiated playlist refresh from the Live TV sidebar. Runs the same
     /// manual sync as Settings. The sync writes on a background actor context;
@@ -50,13 +61,50 @@ final class LiveViewModel {
         // our custom AVAssetResourceLoader — and NSAllowsArbitraryLoadsForMedia in
         // Info.plist permits the http redirect targets some Xtream CDNs use.
         previewURL = repository?.liveStreamURL(streamId: channel.streamId)
+        loadGuide(for: channel, repository: repository)
+    }
+
+    func loadGuide(for channel: LiveEntity, repository: (any IPTVRepository)?) {
+        guideTask?.cancel()
+        guide = []
+        guard channel.hasGuide, let repository else {
+            isGuideLoading = false
+            return
+        }
+        isGuideLoading = true
+        let streamId = channel.streamId
+        guideTask = Task {
+            let listings = await EPGCache.shared.upcoming(streamId: streamId, repository: repository)
+            guard !Task.isCancelled, selectedChannel?.streamId == streamId else { return }
+            guide = listings
+            isGuideLoading = false
+            // Now + next two are what the preview pane shows.
+            EPGFormatter.shared.request(Array(listings.prefix(3)))
+        }
+    }
+
+    /// Opens the selected channel full screen, with the visible list for
+    /// channel switching.
+    func openFullscreen() {
+        guard let channel = selectedChannel else { return }
+        var channels = channelList
+        var index = channels.firstIndex { $0.streamId == channel.streamId }
+        if index == nil {
+            channels = [channel]
+            index = 0
+        }
+        fullscreen = LivePlaybackRequest(channels: channels, startIndex: index ?? 0)
     }
 
     func clearPreview() {
         resolveTask?.cancel()
         resolveTask = nil
+        guideTask?.cancel()
+        guideTask = nil
         selectedChannel = nil
         previewURL = nil
         isPreviewLoading = false
+        guide = []
+        isGuideLoading = false
     }
 }

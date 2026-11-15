@@ -243,7 +243,7 @@ private struct SerieContinueWatchingRail: View {
         }
         .navigationDestination(item: $goToSerie) { SerieDetailView(serie: $0) }
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(url: p.url, title: p.title, progressKey: p.progressKey)
+            PlaybackScreen(playback: p)
         }
     }
 
@@ -261,6 +261,19 @@ private struct SerieContinueWatchingRail: View {
         resolvingId = entry.id
         Task {
             let resolved = await StreamURLResolver.shared.resolve(raw)
+            if let episode {
+                // Full request: Info-panel metadata + Up Next chain.
+                playback = EpisodePlayback.make(
+                    url: resolved,
+                    episode: episode,
+                    serie: entry.serie,
+                    profileId: activeProfileId,
+                    repository: repository,
+                    fromBeginning: false
+                )
+                resolvingId = nil
+                return
+            }
             playback = ResolvedPlayback(
                 url: resolved,
                 title: (episode?.title.isEmpty == false) ? episode!.title : entry.serie.name,
@@ -323,15 +336,14 @@ struct SerieCategoryGrid: View {
         self._focusedSerie = focusedSerie
         self._scrollPosition = scrollPosition
         let categoryId = category.categoryId
+        // Profile scoping in the store: `categoryId` isn't unique across profiles.
         _categorySeries = Query(
-            filter: #Predicate<SerieEntity> { $0.categoryId == categoryId },
+            filter: #Predicate<SerieEntity> { $0.categoryId == categoryId && $0.profile?.id == profileId },
             sort: [SortDescriptor(\SerieEntity.num)]
         )
     }
 
-    private var visibleSeries: [SerieEntity] {
-        categorySeries.filter { $0.profile?.id == profileId }
-    }
+    private var visibleSeries: [SerieEntity] { categorySeries }
 
     private var columns: [GridItem] {
         // Adaptive (fixed tile width) so the grid fits as many poster tiles as the
@@ -399,15 +411,14 @@ struct SerieCatalogRow: View {
         self.profileId = profileId
         self._focusedSerie = focusedSerie
         let categoryId = category.categoryId
+        // Profile scoping in the store: `categoryId` isn't unique across profiles.
         _categorySeries = Query(
-            filter: #Predicate<SerieEntity> { $0.categoryId == categoryId },
+            filter: #Predicate<SerieEntity> { $0.categoryId == categoryId && $0.profile?.id == profileId },
             sort: [SortDescriptor(\SerieEntity.num)]
         )
     }
 
-    private var visibleSeries: [SerieEntity] {
-        categorySeries.filter { $0.profile?.id == profileId }
-    }
+    private var visibleSeries: [SerieEntity] { categorySeries }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

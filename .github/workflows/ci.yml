@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
+  workflow_dispatch:
   pull_request:
     branches: [main]
 
@@ -37,5 +38,22 @@ jobs:
             -project OpenIPTV.xcodeproj \
             -scheme OpenIPTV \
             -destination 'generic/platform=tvOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Unit tests (tvOS simulator)
+        run: |
+          # Pick the first available tvOS simulator rather than hard-coding a
+          # device name that changes between Xcode releases.
+          UDID=$(xcrun simctl list devices available -j \
+            | jq -r '[.devices | to_entries[] | select(.key | test("tvOS")) | .value[]] | first | .udid')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            echo "No tvOS simulator available"; xcrun simctl list devices; exit 1
+          fi
+          echo "Testing on simulator $UDID"
+          xcodebuild test \
+            -project OpenIPTV.xcodeproj \
+            -scheme OpenIPTV \
+            -destination "id=$UDID" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO

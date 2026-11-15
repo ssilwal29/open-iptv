@@ -24,7 +24,16 @@ struct SettingsView: View {
 
     @State private var viewModel = SettingsViewModel()
     @State private var showingCredentialsEdit = false
+    @State private var showingAddAccount = false
     @State private var selectedSection: SettingsSection = .account
+    @State private var pinRequest: PINRequest?
+    @State private var profilePendingRemoval: Profile?
+    /// Bumped after PIN changes: the PIN lives in the Keychain, which SwiftUI
+    /// can't observe, so this forces `hasParentalPIN` to be re-read.
+    @State private var pinRevision = 0
+    @State private var isRemovingProfile = false
+    @State private var showingAPIKeySheet = false
+    @State private var showingModelSheet = false
 
     @Namespace private var settingsScope
 
@@ -80,6 +89,48 @@ struct SettingsView: View {
                 EditCredentialsView(profile: profile)
             }
         }
+        .overlay {
+            if isRemovingProfile {
+                ZStack {
+                    Color.black.opacity(0.5).ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        ProgressView().controlSize(.large)
+                        Text("Removing account…")
+                            .font(.callout)
+                    }
+                    .padding(48)
+                    .cardSurface(cornerRadius: Radius.panel)
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddAccount) {
+            AddAccountView()
+        }
+        .sheet(isPresented: $showingAPIKeySheet) {
+            OpenRouterKeySheet()
+        }
+        .sheet(isPresented: $showingModelSheet) {
+            OpenRouterModelSheet()
+        }
+        .sheet(item: $pinRequest) { request in
+            ParentalPINSheet(profile: request.profile, purpose: request.purpose) {
+                pinRevision += 1
+                request.onSuccess()
+            }
+        }
+        .alert(
+            "Remove \(profilePendingRemoval?.name ?? "account")?",
+            isPresented: Binding(
+                get: { profilePendingRemoval != nil },
+                set: { if !$0 { profilePendingRemoval = nil } }
+            ),
+            presenting: profilePendingRemoval
+        ) { profile in
+            Button("Remove", role: .destructive) { remove(profile) }
+            Button("Cancel", role: .cancel) { profilePendingRemoval = nil }
+        } message: { _ in
+            Text("This signs out of the account on this Apple TV and deletes its downloaded library, favorites and watch progress.")
+        }
     }
 
     // MARK: Detail pane
@@ -91,9 +142,22 @@ struct SettingsView: View {
             if let profile = activeProfile {
                 AccountPanel(
                     profile: profile,
-                    onEdit: { showingCredentialsEdit = true }
+                    onEdit: { showingCredentialsEdit = true },
+                    onRemove: { profilePendingRemoval = profile }
                 )
             } else { notSignedInPanel }
+        case .guide:
+            GuideAIPanel(
+                onSetKey: { showingAPIKeySheet = true },
+                onChangeModel: { showingModelSheet = true }
+            )
+        case .accounts:
+            AccountsPanel(
+                profiles: profiles.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending },
+                activeProfileId: activeProfile?.id,
+                onSwitch: { activeProfileId = $0.id },
+                onAdd: { showingAddAccount = true }
+            )
         case .content:
             if let profile = activeProfile {
                 PlaylistPanel(
@@ -104,7 +168,14 @@ struct SettingsView: View {
                     viewModel: viewModel,
                     onIntervalChange: { viewModel.setSyncInterval($0, profile: profile, context: modelContext) },
                     onRefresh: { Task { await runRefresh(for: profile) } },
-                    onToggleAdult: { viewModel.setHideAdultContent($0, profile: profile, context: modelContext) }
+                    onToggleAdult: { hide in toggleAdult(hide, profile: profile) },
+                    hasPIN: hasPIN(profile),
+                    onSetPIN: {
+                        pinRequest = PINRequest(profile: profile, purpose: hasPIN(profile) ? .change : .set)
+                    },
+                    onRemovePIN: {
+                        pinRequest = PINRequest(profile: profile, purpose: .remove)
+                    }
                 )
             } else { notSignedInPanel }
         }
@@ -119,6 +190,44 @@ struct SettingsView: View {
     }
 
     // MARK: Helpers
+
+    private func hasPIN(_ profile: Profile) -> Bool {
+        _ = pinRevision
+        return profile.hasParentalPIN
+    }
+
+    /// Hiding adult content is always allowed; showing it again needs the
+    /// PIN when one is set.
+    private func toggleAdult(_ hide: Bool, profile: Profile) {
+        if !hide && hasPIN(profile) {
+            pinRequest = PINRequest(profile: profile, purpose: .unlock) {
+                viewModel.setHideAdultContent(false, profile: profile, context: modelContext)
+            }
+        } else {
+            viewModel.setHideAdultContent(hide, profile: profile, context: modelContext)
+        }
+    }
+
+    /// Switch away first so no view is left holding the deleted model, then
+    /// remove. With no accounts left, RootView falls back to setup.
+    private func remove(_ profile: Profile) {
+        guard !isRemovingProfile else { return }
+        profilePendingRemoval = nil
+        if activeProfileId == profile.id {
+            activeProfileId = profiles.first { $0.id != profile.id }?.id ?? ""
+        }
+        selectedSection = .account
+        isRemovingProfile = true
+        let profileId = profile.id
+        let container = modelContext.container
+        Task {
+            // Catalog first (background actor — can be tens of thousands of
+            // rows), then the profile itself on the main context.
+            await ProfileContentRemover(modelContainer: container).deleteContent(profileId: profileId)
+            modelContext.removeProfile(profile)
+            isRemovingProfile = false
+        }
+    }
 
     private func runRefresh(for profile: Profile) async {
         guard let repository else {
@@ -136,25 +245,37 @@ struct SettingsView: View {
 // MARK: - Sections
 
 private enum SettingsSection: CaseIterable, Hashable {
-    case account, content
+    case account, accounts, content, guide
 
     var title: String {
         switch self {
         case .account: return "Account"
+        case .accounts: return "Switch Account"
         case .content: return "Content"
+        case .guide: return "Guide (AI)"
         }
     }
 
     var icon: String {
         switch self {
         case .account: return "person.text.rectangle"
+        case .accounts: return "person.2"
         case .content: return "film.stack"
+        case .guide: return "sparkles"
         }
     }
 
     static var visibleCases: [SettingsSection] {
-        [.account, .content]
+        [.account, .accounts, .content, .guide]
     }
+}
+
+/// A pending PIN prompt and what to do once it succeeds.
+private struct PINRequest: Identifiable {
+    let id = UUID()
+    let profile: Profile
+    let purpose: ParentalPINSheet.Purpose
+    var onSuccess: () -> Void = {}
 }
 
 // MARK: - Section sidebar (mirrors LiveView's category sidebar)
@@ -335,6 +456,7 @@ private struct SettingsRow: View {
 private struct AccountPanel: View {
     let profile: Profile
     let onEdit: () -> Void
+    let onRemove: () -> Void
 
     var body: some View {
         SettingsPanel(
@@ -356,9 +478,16 @@ private struct AccountPanel: View {
             VStack(alignment: .leading, spacing: 6) {
                 SettingsRow(label: "Server", value: profile.serverURL)
                 SettingsRow(label: "Status", value: profile.status.capitalized)
-                if let ts = TimeInterval(profile.expiresAt) {
-                    SettingsRow(label: "Expires", value: parseDateFormat(timestamp: ts))
+                if let expiry = profile.expiryDate {
+                    SettingsRow(label: "Expires", value: parseDateFormat(timestamp: expiry.timeIntervalSince1970))
                 }
+                HStack(spacing: 10) {
+                    Image(systemName: profile.isExpiringSoon ? "exclamationmark.triangle.fill" : "checkmark.seal")
+                    Text(ProfileExpiry.summary(for: profile))
+                }
+                .font(.caption)
+                .foregroundStyle(profile.isExpiringSoon ? Color.orange : Color.secondary)
+                .padding(.top, 4)
                 SettingsRow(label: "Max connections", value: profile.maxConnections, monospaced: true)
             }
             .padding(24)
@@ -366,19 +495,28 @@ private struct AccountPanel: View {
             .cardSurface(cornerRadius: Radius.card)
 
             VStack(alignment: .center, spacing: 30) {
-                Text("Manage the creditials used to connect")
+                Text("Manage the credentials used to connect")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
 
-                Button(action: onEdit) {
-                    Label("Edit Credentials", systemImage: "pencil")
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                HStack(spacing: 24) {
+                    Button(action: onEdit) {
+                        Label("Edit Credentials", systemImage: "pencil")
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.glass)
+
+                    Button(role: .destructive, action: onRemove) {
+                        Label("Remove Account", systemImage: "person.crop.circle.badge.minus")
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.glass)
                 }
                 .frame(maxWidth: .infinity)
-                .buttonStyle(.glass)
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -407,6 +545,9 @@ private struct PlaylistPanel: View {
     let onIntervalChange: (Int) -> Void
     let onRefresh: () -> Void
     let onToggleAdult: (Bool) -> Void
+    let hasPIN: Bool
+    let onSetPIN: () -> Void
+    let onRemovePIN: () -> Void
 
     var body: some View {
         SettingsPanel(
@@ -511,11 +652,33 @@ private struct PlaylistPanel: View {
                     Text("Hide adult content")
                         .font(.body)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Filters categories and titles flagged as adult.")
+                    Text(hasPIN
+                         ? "Hides movies and channels flagged as adult. Turning this off requires the PIN."
+                         : "Hides movies and channels flagged as adult.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Parental PIN")
+                        .font(.body)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(hasPIN ? "On" : "Off — anyone can show adult content")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 12)
+                Button(hasPIN ? "Change PIN" : "Set PIN", action: onSetPIN)
+                    .buttonStyle(.glass)
+                if hasPIN {
+                    Button("Remove PIN", role: .destructive, action: onRemovePIN)
+                        .buttonStyle(.glass)
+                }
+            }
+            .padding(.top, 16)
+            .focusSection()
             
         }
     }
@@ -582,3 +745,298 @@ private struct PlaylistPanel: View {
     }
 }
 
+
+// MARK: - Accounts panel (switch / add)
+
+private struct AccountsPanel: View {
+    let profiles: [Profile]
+    let activeProfileId: String?
+    let onSwitch: (Profile) -> Void
+    let onAdd: () -> Void
+
+    var body: some View {
+        SettingsPanel(
+            title: "Accounts",
+            subtitle: profiles.count == 1 ? "1 account on this Apple TV" : "\(profiles.count) accounts on this Apple TV"
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(profiles) { profile in
+                    AccountRow(
+                        profile: profile,
+                        isActive: profile.id == activeProfileId,
+                        onSelect: { onSwitch(profile) }
+                    )
+                }
+
+                Button(action: onAdd) {
+                    Label("Add Account", systemImage: "plus")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.glass)
+                .padding(.top, 8)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+private struct AccountRow: View {
+    let profile: Profile
+    let isActive: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 20) {
+                Image(systemName: isActive ? "checkmark.circle.fill" : "person.crop.circle")
+                    .font(.title3)
+                    .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(profile.name)
+                        .font(.body.weight(isActive ? .semibold : .regular))
+                        .lineLimit(1)
+                    Text("\(profile.username) · \(profile.serverURL)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 12)
+                Text(isActive ? "Active" : ProfileExpiry.summary(for: profile))
+                    .font(.caption)
+                    .foregroundStyle(profile.isExpiringSoon && !isActive ? Color.orange : Color.secondary)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.card)
+        .accessibilityHint(isActive ? "Current account" : "Switch to this account")
+    }
+}
+
+// MARK: - Guide (AI) panel
+
+/// Settings for AI clean-up of the TV guide via OpenRouter, with live progress.
+private struct GuideAIPanel: View {
+    let onSetKey: () -> Void
+    let onChangeModel: () -> Void
+
+    private var formatter: EPGFormatter { .shared }
+
+    @State private var testState: TestState = .idle
+
+    private enum TestState: Equatable {
+        case idle
+        case running
+        case success(String)
+        case failure(String)
+    }
+
+    var body: some View {
+        SettingsPanel(
+            title: "Guide (AI)",
+            subtitle: formatter.isActive ? "On · \(formatter.model)" : "Off"
+        ) {
+            VStack(alignment: .leading, spacing: 24) {
+                Toggle(isOn: Binding(
+                    get: { formatter.isEnabled },
+                    set: { formatter.setEnabled($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Tidy up the TV guide with AI")
+                            .font(.body)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("Fixes messy programme titles, pulls out episode numbers and genres, and shortens long descriptions.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                connectionCard
+                    .focusSection()
+
+                statusCard
+                    .focusSection()
+
+                Label(
+                    "Only programme titles and descriptions are sent to OpenRouter — never your account details or stream links. OpenRouter charges your account for each request.",
+                    systemImage: "lock.shield"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: Connection
+
+    private var connectionCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("OpenRouter API key")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(formatter.apiKeyHint.map { "••••\($0)" } ?? String(localized: "Not set"))
+                        .font(.callout.monospaced())
+                        .foregroundStyle(Color.textPrimary)
+                }
+                Spacer(minLength: 12)
+                Button(formatter.hasAPIKey ? "Change Key" : "Set Key", action: onSetKey)
+                    .buttonStyle(.glass)
+                if formatter.hasAPIKey {
+                    Button("Remove", role: .destructive) {
+                        formatter.removeAPIKey()
+                        testState = .idle
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Model")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text(formatter.model)
+                        .font(.callout.monospaced())
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 12)
+                Button("Change", action: onChangeModel)
+                    .buttonStyle(.glass)
+            }
+
+            HStack(spacing: 16) {
+                Button(action: runTest) {
+                    HStack(spacing: 10) {
+                        if testState == .running {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "bolt.horizontal.circle")
+                        }
+                        Text("Test Connection")
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.glass)
+                .disabled(!formatter.hasAPIKey || testState == .running)
+
+                testResult
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: Radius.card)
+    }
+
+    @ViewBuilder
+    private var testResult: some View {
+        switch testState {
+        case .idle, .running:
+            EmptyView()
+        case .success(let title):
+            Label("Works — sample became “\(title)”", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .lineLimit(2)
+        case .failure(let message):
+            Label(message, systemImage: "xmark.octagon.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(2)
+        }
+    }
+
+    private func runTest() {
+        testState = .running
+        Task {
+            do {
+                testState = .success(try await formatter.testConnection())
+            } catch {
+                testState = .failure(error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: Status
+
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("STATUS")
+                .font(.caption2.bold())
+                .tracking(1.2)
+                .foregroundStyle(.secondary)
+
+            if formatter.isRunning {
+                HStack(spacing: 12) {
+                    Image(systemName: "sparkles")
+                        .symbolEffect(.pulse, options: .repeating)
+                    Text("Formatting guide…")
+                    Spacer()
+                    Text("\(min(formatter.runCompleted + formatter.runFailed, formatter.runTotal)) of \(formatter.runTotal)")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .font(.callout)
+                ProgressView(value: formatter.runFraction)
+                    .progressViewStyle(.linear)
+                    .tint(Color.progressFill)
+                    .animation(.smooth(duration: 0.3), value: formatter.runFraction)
+            } else if formatter.runTotal > 0 {
+                Text(formatter.runFailed > 0
+                     ? "Last run: \(formatter.runCompleted) formatted, \(formatter.runFailed) failed"
+                     : "Last run: \(formatter.runCompleted) formatted")
+                    .font(.callout)
+            } else {
+                Text(formatter.isActive
+                     ? "Idle. Programmes are formatted as they appear in Live TV."
+                     : formatter.hasAPIKey ? "Turn on the toggle above to start." : "Add an OpenRouter API key to start.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 28) {
+                stat("Cached", "\(formatter.cachedCount)")
+                stat("Sent this session", "\(formatter.sessionSent) / \(EPGFormatter.sessionLimit)")
+                stat("Tokens this session", formatter.sessionTokens.formatted())
+            }
+
+            if let error = formatter.lastError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 16) {
+                if formatter.isPaused {
+                    Button("Resume") { formatter.resume() }
+                        .buttonStyle(.glassProminent)
+                }
+                Button("Clear Cache", role: .destructive) { formatter.clearCache() }
+                    .buttonStyle(.glass)
+                    .disabled(formatter.cachedCount == 0)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(cornerRadius: Radius.card)
+    }
+
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(Color.textPrimary)
+        }
+    }
+}

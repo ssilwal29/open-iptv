@@ -82,12 +82,7 @@ struct MovieDetailView: View {
         .preference(key: DetailModalActiveKey.self, value: expandedCard != nil)
         .defaultFocus($playFocused, true)
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(
-                url: p.url,
-                title: p.title,
-                progressKey: p.progressKey,
-                startFromBeginning: p.startFromBeginning
-            )
+            PlaybackScreen(playback: p)
         }
         .task {
             guard let repository else { return }
@@ -112,7 +107,12 @@ struct MovieDetailView: View {
                 url: resolved,
                 title: movie.name,
                 progressKey: .movie(profileId: activeProfileId, streamId: movie.streamId),
-                startFromBeginning: fromBeginning
+                startFromBeginning: fromBeginning,
+                metadata: PlaybackMetadata(
+                    title: movie.name,
+                    description: movie.detail?.plot,
+                    artworkURL: movie.streamIconURL
+                )
             )
             isResolvingPlay = false
         }

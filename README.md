@@ -21,13 +21,24 @@ solid base. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - **Native SwiftUI tvOS 26 UI** — focus-aware posters, native Liquid Glass materials
 - **Movies, TV Series (seasons + episodes), and Live TV**
-- **Search** across your movie and series library
-- **Continue Watching** — resume movies and episodes where you left off
+- **Live TV guide** — what's on now and next for each channel, with progress
+- **Catch-up** — replay archived programmes on channels your provider records
+- **AI guide clean-up (optional)** — bring your own OpenRouter key to tidy messy
+  programme titles, pull out episode numbers and genres, and shorten descriptions
+  (default model `google/gemini-3.8-flash`; only guide text is sent)
+- **Favorite channels** — pinned at the top of the Live TV sidebar
+- **Channel switching** — Previous/Next Channel from the full-screen player
+- **Up Next** — the next episode starts automatically (with a countdown you can cancel)
+- **Search** across movies, series and live channels
+- **Continue Watching** — resume movies and episodes where you left off, also on the
+  Apple TV **Top Shelf**
+- **Multiple accounts** — add, switch and remove Xtream accounts in Settings
+- **Subscription expiry** — refreshed on launch, with a warning in the last week
+- **Parental PIN** — optional PIN to show adult content again once hidden
 - **Local SwiftData cache** — the catalog is persisted on-device; first launch does
   the download, every subsequent launch renders instantly and only syncs deltas
-- **Configurable sync** — automatic refresh (1/3/7/14 days or manual), with
+- **Configurable sync** — automatic refresh (3/7/14 days or manual), with
   prune-on-refresh so titles removed by your provider disappear from the app
-- **Settings** — edit credentials, sign out, pick sync interval, hide adult content
 - **Resilient networking** — exponential-backoff retry, and HTTPS → HTTP fallback
   plus a custom resource loader for providers with self-signed certificates
 
@@ -48,6 +59,13 @@ solid base. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 The one dependency ([Nuke](https://github.com/kean/Nuke), for image loading) is
 resolved automatically by Swift Package Manager — no extra setup.
+
+**Running on a real Apple TV:** pick your own team under *Signing & Capabilities* for
+the `OpenIPTV` and `OpenIPTVTopShelf` targets. Both use the App Group
+`group.io.OpenIPTV` for the Top Shelf row; if you change the bundle identifiers,
+use your own group ID in both `.entitlements` files and in
+`TopShelfShared.appGroup`. Simulator builds work without any signing setup (Top
+Shelf just stays empty).
 
 ## Architecture
 

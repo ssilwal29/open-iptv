@@ -17,6 +17,17 @@ protocol IPTVRepository: AnyObject {
     func movieStreamURL(streamId: Int, containerExtension: String) -> URL?
     func liveStreamURL(streamId: Int) -> URL?
     func episodeStreamURL(episodeId: String, containerExtension: String) -> URL?
+
+    /// Current account state (status, expiry, connection limit).
+    func fetchAccount() async throws -> Account
+    /// Now/next guide for one channel (`get_short_epg`).
+    func fetchShortEPG(streamId: Int, limit: Int) async throws -> [EPGListing]
+    /// Full guide for one channel, including archived programmes
+    /// (`get_simple_data_table`). Used for catch-up.
+    func fetchEPGArchive(streamId: Int) async throws -> [EPGListing]
+    /// Timeshift (catch-up) URL for an archived programme, or nil when the
+    /// listing's start time can't be expressed in the timeshift format.
+    func catchupStreamURL(streamId: Int, listing: EPGListing) -> URL?
 }
 
 // MARK: - SwiftUI Environment

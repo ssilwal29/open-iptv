@@ -124,7 +124,7 @@ struct MovieView: View {
     private var content: some View {
         if let id = selectedCategoryId,
            let category = categories.first(where: { $0.compositeId == id }) {
-            MovieCategoryGrid(category: category, profileId: activeProfileId, focusedMovie: $focusedMovie, scrollPosition: $scrollPosition)
+            MovieCategoryGrid(category: category, profileId: activeProfileId, hideAdult: hideAdult, focusedMovie: $focusedMovie, scrollPosition: $scrollPosition)
         } else {
             allRails
         }
@@ -145,6 +145,7 @@ struct MovieView: View {
                     MovieCatalogRow(
                         category: category,
                         profileId: activeProfileId,
+                        hideAdult: hideAdult,
                         focusedMovie: $focusedMovie
                     )
                     .focusSection()
@@ -233,7 +234,7 @@ private struct MovieContinueWatchingRail: View {
         }
         .navigationDestination(item: $goToMovie) { MovieDetailView(movie: $0) }
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(url: p.url, title: p.title, progressKey: p.progressKey)
+            PlaybackScreen(playback: p)
         }
     }
 
@@ -252,7 +253,12 @@ private struct MovieContinueWatchingRail: View {
             playback = ResolvedPlayback(
                 url: resolved,
                 title: entry.movie.name,
-                progressKey: .movie(profileId: activeProfileId, streamId: entry.movie.streamId)
+                progressKey: .movie(profileId: activeProfileId, streamId: entry.movie.streamId),
+                metadata: PlaybackMetadata(
+                    title: entry.movie.name,
+                    description: entry.movie.detail?.plot,
+                    artworkURL: entry.movie.streamIconURL
+                )
             )
             resolvingId = nil
         }
@@ -457,11 +463,11 @@ struct MovieCategoryGrid: View {
     @Binding var scrollPosition: ScrollPosition
     // See MovieCatalogRow — @Query so background-sync inserts refresh the grid.
     @Query private var categoryMovies: [MovieEntity]
-    @Query private var profiles: [Profile]
 
     init(
         category: CategoryEntity,
         profileId: String,
+        hideAdult: Bool,
         focusedMovie: FocusState<MovieEntity?>.Binding,
         scrollPosition: Binding<ScrollPosition>
     ) {
@@ -469,20 +475,15 @@ struct MovieCategoryGrid: View {
         self.profileId = profileId
         self._focusedMovie = focusedMovie
         self._scrollPosition = scrollPosition
-        let categoryId = category.categoryId
         _categoryMovies = Query(
-            filter: #Predicate<MovieEntity> { $0.categoryId == categoryId },
+            filter: MovieEntity.categoryPredicate(categoryId: category.categoryId, profileId: profileId, hideAdult: hideAdult),
             sort: [SortDescriptor(\MovieEntity.num)]
         )
     }
 
-    private var hideAdult: Bool {
-        profiles.first(where: { $0.id == profileId })?.hideAdultContent ?? true
-    }
-
-    private var visibleMovies: [MovieEntity] {
-        categoryMovies.filter { $0.profile?.id == profileId && (!hideAdult || !$0.isAdult) }
-    }
+    // Profile + adult scoping happen in the store (see `MovieEntity.categoryPredicate`),
+    // so the view never materializes another profile's rows.
+    private var visibleMovies: [MovieEntity] { categoryMovies }
 
     private var columns: [GridItem] {
         // Adaptive (fixed tile width) so the grid fits as many poster tiles as the
@@ -545,26 +546,20 @@ struct MovieCatalogRow: View {
     // re-run a @Query, never a materialized relationship array — that array
     // stays stale until the view is rebuilt (relaunch / profile switch).
     @Query private var categoryMovies: [MovieEntity]
-    @Query private var profiles: [Profile]
 
-    init(category: CategoryEntity, profileId: String, focusedMovie: FocusState<MovieEntity?>.Binding) {
+    init(category: CategoryEntity, profileId: String, hideAdult: Bool, focusedMovie: FocusState<MovieEntity?>.Binding) {
         self._category = Bindable(wrappedValue: category)
         self.profileId = profileId
         self._focusedMovie = focusedMovie
-        let categoryId = category.categoryId
         _categoryMovies = Query(
-            filter: #Predicate<MovieEntity> { $0.categoryId == categoryId },
+            filter: MovieEntity.categoryPredicate(categoryId: category.categoryId, profileId: profileId, hideAdult: hideAdult),
             sort: [SortDescriptor(\MovieEntity.num)]
         )
     }
 
-    private var hideAdult: Bool {
-        profiles.first(where: { $0.id == profileId })?.hideAdultContent ?? true
-    }
-
-    private var visibleMovies: [MovieEntity] {
-        categoryMovies.filter { $0.profile?.id == profileId && (!hideAdult || !$0.isAdult) }
-    }
+    // Profile + adult scoping happen in the store (see `MovieEntity.categoryPredicate`),
+    // so the view never materializes another profile's rows.
+    private var visibleMovies: [MovieEntity] { categoryMovies }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
