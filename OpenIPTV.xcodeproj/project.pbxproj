@@ -138,7 +138,6 @@
 		D9A1000D0000000DDEADBEED /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
 		D9A1001300000013DEADBEF3 /* DeferredSave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredSave.swift; sourceTree = "<group>"; };
 		D9A1001500000015DEADBEF5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		D9A1001700000017DEADBEF7 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -278,7 +277,6 @@
 				B2F052792C38C2CC0064FBE7 /* Assets.xcassets */,
 				B2F052902C38E5F90064FBE7 /* Info.plist */,
 				D9A1001500000015DEADBEF5 /* PrivacyInfo.xcprivacy */,
-				D9A1001700000017DEADBEF7 /* Products.storekit */,
 				B2F0527B2C38C2CC0064FBE7 /* Preview Content */,
 			);
 			path = OpenIPTV;

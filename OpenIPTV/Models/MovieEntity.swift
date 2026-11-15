@@ -105,3 +105,17 @@ final class MovieDetailEntity {
         self.movie = movie
     }
 }
+
+extension MovieEntity {
+    /// Movies in one category for one profile, optionally excluding adult
+    /// titles. Evaluated in SQLite so browse views never load another
+    /// profile's rows (category ids are only unique per provider).
+    static func categoryPredicate(categoryId: String, profileId: String, hideAdult: Bool) -> Predicate<MovieEntity> {
+        let includeAdult = !hideAdult
+        return #Predicate<MovieEntity> { movie in
+            movie.categoryId == categoryId
+                && movie.profile?.id == profileId
+                && (includeAdult || !movie.isAdult)
+        }
+    }
+}

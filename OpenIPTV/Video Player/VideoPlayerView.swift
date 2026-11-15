@@ -89,7 +89,9 @@ struct VideoPlayerView: View {
                 self.errorString = error
             case .stopped:
                 logger.info("Stopped: \(url.absoluteString, privacy: .private)")
-                self.errorString = "Stopped, Video: \(url.absoluteString)"
+                // Never echo the URL: Xtream stream URLs embed the username
+                // and password in the path.
+                self.errorString = ""
             }
         }
     }
