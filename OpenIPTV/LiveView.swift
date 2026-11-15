@@ -45,9 +45,23 @@ struct LiveView: View {
         allLiveCategories.filter { $0.profile?.id == activeProfileId }
     }
 
+    @Query private var profiles: [Profile]
+
     @Environment(\.iptvRepository) private var repository
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = LiveViewModel()
+
+    private var activeProfile: Profile? {
+        profiles.first { $0.id == activeProfileId }
+    }
+
+    private var hideAdult: Bool { activeProfile?.hideAdultContent ?? true }
+
+    private var favoriteIds: [Int] { activeProfile?.favoriteLiveStreamIds ?? [] }
+
+    private var channelSource: ChannelSource {
+        viewModel.showFavorites ? .favorites(favoriteIds) : .category(viewModel.selectedCategory)
+    }
 
     @Namespace private var liveScope
 
@@ -60,8 +74,14 @@ struct LiveView: View {
                 HStack(alignment: .top, spacing: Spacing.panel) {
                     CategorySidebar(
                         categories: categories,
-                        selectedCategoryId: viewModel.selectedCategory?.compositeId,
+                        selectedCategoryId: viewModel.showFavorites ? nil : viewModel.selectedCategory?.compositeId,
+                        favoritesCount: favoriteIds.count,
+                        favoritesSelected: viewModel.showFavorites,
+                        onSelectFavorites: {
+                            viewModel.showFavorites = true
+                        },
                         onSelectCategory: { category in
+                            viewModel.showFavorites = false
                             viewModel.selectedCategory = category
                         },
                         isRefreshing: viewModel.isRefreshing,
@@ -80,18 +100,27 @@ struct LiveView: View {
                     .prefersDefaultFocus(true, in: liveScope)
 
                     ChannelListPane(
-                        category: viewModel.selectedCategory,
+                        source: channelSource,
                         profileId: activeProfileId,
+                        hideAdult: hideAdult,
+                        favoriteIds: favoriteIds,
                         searchText: $viewModel.searchText,
                         selectedChannel: viewModel.selectedChannel,
                         onSelect: { channel in
                             viewModel.selectChannel(channel, repository: repository)
+                        },
+                        onListChange: { channels in
+                            viewModel.channelList = channels
                         }
                     )
                     .frame(width: proxy.size.width * 0.44)
                     .focusSection()
 
-                    PreviewPane(viewModel: viewModel)
+                    PreviewPane(
+                        viewModel: viewModel,
+                        isFavorite: viewModel.selectedChannel.map { favoriteIds.contains($0.streamId) } ?? false,
+                        onToggleFavorite: toggleFavorite
+                    )
                     .frame(maxWidth: .infinity)
                     .focusSection()
                 }
@@ -110,7 +139,14 @@ struct LiveView: View {
                 // Profile switched — drop the previous profile's selection so the
                 // panes stop showing its channels; reseed from the new profile.
                 viewModel.clearPreview()
+                viewModel.showFavorites = false
                 viewModel.selectedCategory = categories.first
+            }
+            .onChange(of: hideAdult) { _, hide in
+                // The adult filter was switched on: drop an adult preview.
+                if hide, viewModel.selectedChannel?.isAdult == true {
+                    viewModel.clearPreview()
+                }
             }
             .onChange(of: categories.map(\.compositeId)) { _, ids in
                 // Keep a valid selection as categories arrive (e.g. a newly added
@@ -123,6 +159,20 @@ struct LiveView: View {
             }
         }
     }
+}
+
+extension LiveView {
+    fileprivate func toggleFavorite() {
+        guard let channel = viewModel.selectedChannel, let profile = activeProfile else { return }
+        profile.toggleFavoriteLive(channel.streamId)
+        try? modelContext.save()
+    }
+}
+
+/// What the middle pane lists.
+enum ChannelSource {
+    case category(CategoryEntity?)
+    case favorites([Int])
 }
 
 // MARK: - Shared glass panel (mirror SettingsPanel pattern)
@@ -177,6 +227,9 @@ private struct LivePanel<Content: View>: View {
 private struct CategorySidebar: View {
     let categories: [CategoryEntity]
     let selectedCategoryId: String?
+    let favoritesCount: Int
+    let favoritesSelected: Bool
+    let onSelectFavorites: () -> Void
     let onSelectCategory: (CategoryEntity) -> Void
     let isRefreshing: Bool
     let onRefresh: () -> Void
@@ -189,6 +242,14 @@ private struct CategorySidebar: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: 10) {
                     RefreshRow(isRefreshing: isRefreshing, onRefresh: onRefresh)
+
+                    SidebarRow(
+                        title: "FAVORITES",
+                        systemImage: favoritesSelected ? "star.fill" : "star",
+                        trailing: favoritesCount > 0 ? "\(favoritesCount)" : nil,
+                        isSelected: favoritesSelected,
+                        onSelect: onSelectFavorites
+                    )
 
                     ForEach(categories, id: \.compositeId) { category in
                         CategoryRow(
@@ -260,6 +321,64 @@ private struct RefreshRow: View {
     }
 }
 
+/// Non-category sidebar entry (Favorites), styled like `CategoryRow`.
+private struct SidebarRow: View {
+    let title: String
+    let systemImage: String
+    let trailing: String?
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.body)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .frame(width: 28)
+
+            Button(action: onSelect) {
+                HStack {
+                    Text(title)
+                        .font(.body)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .foregroundStyle(Color.textPrimary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    if let trailing {
+                        Text(trailing)
+                            .font(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .focused($isFocused)
+            .animation(.smooth(duration: 0.18), value: isFocused)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(rowBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var rowBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.row, style: .continuous)
+        if isFocused {
+            shape.fill(Color.accentColor.opacity(0.28))
+        } else if isSelected {
+            shape.fill(Color.accentColor.opacity(0.14))
+        } else {
+            Color.clear
+        }
+    }
+}
+
 private struct CategoryRow: View {
     let category: CategoryEntity
     let isSelected: Bool
@@ -324,45 +443,78 @@ private struct CategoryRow: View {
 // MARK: - Channel list + search
 
 private struct ChannelListPane: View {
-    let category: CategoryEntity?
+    let source: ChannelSource
     let profileId: String
+    let favoriteIds: [Int]
     @Binding var searchText: String
     let selectedChannel: LiveEntity?
     let onSelect: (LiveEntity) -> Void
+    let onListChange: ([LiveEntity]) -> Void
 
     // Channels for the selected category sourced from a @Query, not the
     // `category.lives` relationship: a background sync (Refresh / profile add)
     // writes on the sync actor's context, and only a @Query re-runs on that
     // save — a materialized relationship array stays stale until the view is
-    // rebuilt. `categoryId` isn't profile-unique, so scope by profile in memory.
+    // rebuilt. Profile + adult scoping are part of the predicate.
     @Query private var categoryChannels: [LiveEntity]
 
     @FocusState private var searchFocused: Bool
 
     init(
-        category: CategoryEntity?,
+        source: ChannelSource,
         profileId: String,
+        hideAdult: Bool,
+        favoriteIds: [Int],
         searchText: Binding<String>,
         selectedChannel: LiveEntity?,
-        onSelect: @escaping (LiveEntity) -> Void
+        onSelect: @escaping (LiveEntity) -> Void,
+        onListChange: @escaping ([LiveEntity]) -> Void
     ) {
-        self.category = category
+        self.source = source
         self.profileId = profileId
+        self.favoriteIds = favoriteIds
         self._searchText = searchText
         self.selectedChannel = selectedChannel
         self.onSelect = onSelect
+        self.onListChange = onListChange
 
-        // No selection → a categoryId no channel has, so the query is empty.
-        let categoryId = category?.categoryId ?? "\u{01}"
-        _categoryChannels = Query(
-            filter: #Predicate<LiveEntity> { $0.categoryId == categoryId },
-            sort: [SortDescriptor(\LiveEntity.num)]
-        )
+        let includeAdult = !hideAdult
+        let filter: Predicate<LiveEntity>
+        switch source {
+        case .category(let category):
+            // No selection → a categoryId no channel has, so the query is empty.
+            let categoryId = category?.categoryId ?? "\u{01}"
+            filter = #Predicate<LiveEntity> { live in
+                live.categoryId == categoryId
+                    && live.profile?.id == profileId
+                    && (includeAdult || live.adult != "1")
+            }
+        case .favorites(let ids):
+            filter = #Predicate<LiveEntity> { live in
+                ids.contains(live.streamId)
+                    && live.profile?.id == profileId
+                    && (includeAdult || live.adult != "1")
+            }
+        }
+        _categoryChannels = Query(filter: filter, sort: [SortDescriptor(\LiveEntity.num)])
     }
 
-    /// Active profile's channels in the selected category.
+    private var category: CategoryEntity? {
+        if case .category(let category) = source { return category }
+        return nil
+    }
+
+    private var isFavorites: Bool {
+        if case .favorites = source { return true }
+        return false
+    }
+
+    /// Active profile's channels for the current source. Favourites keep the
+    /// order they were added in.
     private var categoryChannelsForProfile: [LiveEntity] {
-        categoryChannels.filter { $0.profile?.id == profileId }
+        guard isFavorites else { return categoryChannels }
+        let order = Dictionary(favoriteIds.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        return categoryChannels.sorted { (order[$0.streamId] ?? .max) < (order[$1.streamId] ?? .max) }
     }
 
     // Debounced mirror of `searchText`. The channel list can hold 1,000+ rows,
@@ -372,16 +524,12 @@ private struct ChannelListPane: View {
     @State private var appliedSearch: String = ""
 
     private var visibleChannels: [LiveEntity] {
-        let source: [LiveEntity]
-        if category != nil {
-            source = categoryChannelsForProfile
-        } else {
-            return []
-        }
+        guard category != nil || isFavorites else { return [] }
+        let source = categoryChannelsForProfile
         let filtered = appliedSearch.isEmpty
             ? source
             : source.filter { $0.name.localizedCaseInsensitiveContains(appliedSearch) }
-        return filtered.sorted { $0.num < $1.num }
+        return isFavorites ? filtered : filtered.sorted { $0.num < $1.num }
     }
 
     var body: some View {
@@ -393,6 +541,10 @@ private struct ChannelListPane: View {
                 .focusSection()
             content
                 .focusSection()
+        }
+        .onAppear { onListChange(visibleChannels) }
+        .onChange(of: visibleChannels.map(\.streamId)) { _, _ in
+            onListChange(visibleChannels)
         }
         .task(id: searchText) {
             if searchText.isEmpty {
@@ -406,10 +558,16 @@ private struct ChannelListPane: View {
     }
 
     private var titleText: String {
-        "Channels"
+        isFavorites ? "Favorites" : "Channels"
     }
 
     private var subtitleText: String {
+        if isFavorites {
+            let count = categoryChannelsForProfile.count
+            return count == 0
+                ? "Add channels from the preview pane"
+                : "\(count) favorite \(count == 1 ? "channel" : "channels")"
+        }
         guard let category else { return "Pick a category" }
         let channelCount = categoryChannelsForProfile.count
         return "\(channelCount) \(channelCount == 1 ? "channel" : "channels") found in \(category.name.uppercased())"
@@ -440,13 +598,17 @@ private struct ChannelListPane: View {
 
     @ViewBuilder
     private var content: some View {
-        if category == nil {
+        if category == nil && !isFavorites {
             placeholder("list.bullet", "Select a category")
         } else if visibleChannels.isEmpty {
-            placeholder(
-                "magnifyingglass",
-                appliedSearch.isEmpty ? "No channels here yet" : "No matches"
-            )
+            if isFavorites && appliedSearch.isEmpty {
+                placeholder("star", "No favorites yet. Pick a channel, then choose Add to Favorites in the preview pane.")
+            } else {
+                placeholder(
+                    "magnifyingglass",
+                    appliedSearch.isEmpty ? "No channels here yet" : "No matches"
+                )
+            }
         } else {
             ScrollView {
                 LazyVStack(spacing: 10) {
@@ -454,6 +616,7 @@ private struct ChannelListPane: View {
                         ChannelRow(
                             channel: channel,
                             isPreviewed: selectedChannel?.streamId == channel.streamId,
+                            isFavorite: favoriteIds.contains(channel.streamId),
                             onSelect: { onSelect(channel) }
                         )
                     }
@@ -483,8 +646,13 @@ private struct ChannelListPane: View {
 private struct ChannelRow: View {
     let channel: LiveEntity
     let isPreviewed: Bool
+    let isFavorite: Bool
     let onSelect: () -> Void
     @State private var isAnimating = false
+    /// Programme on air now, from the guide (nil until loaded / no guide).
+    @State private var nowTitle: String?
+
+    @Environment(\.iptvRepository) private var repository
 
     @FocusState private var isFocused: Bool
 
@@ -505,11 +673,19 @@ private struct ChannelRow: View {
 
             Button(action: onSelect) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(channel.name.uppercased())
-                        .font(.caption)
-                        .foregroundStyle(Color.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    HStack(spacing: 8) {
+                        Text(channel.name.uppercased())
+                            .font(.caption)
+                            .foregroundStyle(Color.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        if isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.yellow)
+                                .accessibilityLabel("Favorite")
+                        }
+                    }
 
                     if isPreviewed {
                         HStack(spacing: 6) {
@@ -521,16 +697,18 @@ private struct ChannelRow: View {
                                     }
                                 }
                                 .onDisappear { isAnimating = false }
-                            Text(verbatim: " LIVE  ·  Channel \(channel.num)")
+                            Text(verbatim: " LIVE  ·  \(secondaryText)")
                                 .font(.caption)
                                 .bold()
                                 .foregroundStyle(Color.accentColor)
+                                .lineLimit(1)
                         }
                     } else {
-                        Text(verbatim: "Channel \(channel.num)")
+                        Text(verbatim: secondaryText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
+                            .lineLimit(1)
                     }
                 }
             }
@@ -545,6 +723,24 @@ private struct ChannelRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: Radius.row, style: .continuous))
+        .task(id: channel.streamId) {
+            nowTitle = nil
+            guard channel.hasGuide, let repository else { return }
+            // Short delay so rows flicked past while scrolling never fetch.
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            let upcoming = await EPGCache.shared.upcoming(streamId: channel.streamId, repository: repository)
+            guard !Task.isCancelled else { return }
+            nowTitle = upcoming.first { $0.isAiring() }?.title
+        }
+    }
+
+    /// "Channel 12 · Evening News" once the guide has loaded.
+    private var secondaryText: String {
+        if let nowTitle, !nowTitle.isEmpty {
+            return "Channel \(channel.num)  ·  \(nowTitle)"
+        }
+        return "Channel \(channel.num)"
     }
 
     @ViewBuilder
@@ -567,7 +763,9 @@ private struct ChannelRow: View {
 
 private struct PreviewPane: View {
     @Bindable var viewModel: LiveViewModel
-    @State private var showFullscreen = false
+    let isFavorite: Bool
+    let onToggleFavorite: () -> Void
+    @State private var showCatchup = false
     @State private var isAnimating = false
     @Environment(\.colorScheme) private var colorScheme
 
@@ -580,13 +778,15 @@ private struct PreviewPane: View {
         // stays put regardless of the info card's content height — matching the
         // sidebar and channel-list panels (which top-anchor via LivePanel).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .fullScreenCover(isPresented: $showFullscreen) {
-            if let url = viewModel.previewURL, let channel = viewModel.selectedChannel {
-                // Native AVPlayerViewController via the same VideoPlayerView
-                // movies/series use. Gives system focus, scrubbing (where
-                // applicable), audio/subtitle pickers, Info, and AirPlay — and
-                // brokers self-signed streams through StreamURLResolver.
-                VideoPlayerView(url: url, title: channel.name, isLive: true)
+        .fullScreenCover(item: $viewModel.fullscreen) { request in
+            // Native AVPlayerViewController via the same VideoPlayerView
+            // movies/series use (audio/subtitle pickers, Info, AirPlay), plus
+            // Previous/Next Channel in the transport bar.
+            LiveFullscreenPlayer(request: request)
+        }
+        .fullScreenCover(isPresented: $showCatchup) {
+            if let channel = viewModel.selectedChannel {
+                CatchupView(channel: channel)
             }
         }
     }
@@ -653,34 +853,62 @@ private struct PreviewPane: View {
                 title: channel.name.capitalized,
                 subtitle: "Channel \(channel.num)"
             ) {
-                if viewModel.previewURL != nil {
-                    HStack(spacing: 10) {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
-                        Text("Streaming live")
-                    }
-                    .font(.callout)
-                    .foregroundStyle(Color.accentColor)
-                    .padding(.bottom, 10)
+                GuideSummary(
+                    guide: viewModel.guide,
+                    isLoading: viewModel.isGuideLoading,
+                    hasGuide: channel.hasGuide
+                )
+                .padding(.bottom, 6)
 
-                    Button {
-                        showFullscreen = true
-                    } label: {
-                        Label("Full Screen", systemImage: "rectangle.inset.filled.and.arrow.up.forward.fill")
-                            .font(.callout)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                if viewModel.previewURL != nil {
+                    VStack(spacing: 16) {
+                        Button {
+                            viewModel.openFullscreen()
+                        } label: {
+                            Label("Full Screen", systemImage: "rectangle.inset.filled.and.arrow.up.forward.fill")
+                                .font(.callout)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.glassProminent)
+
+                        HStack(spacing: 16) {
+                            Button(action: onToggleFavorite) {
+                                Label(
+                                    isFavorite ? "Remove Favorite" : "Add to Favorites",
+                                    systemImage: isFavorite ? "star.slash" : "star"
+                                )
+                                .font(.callout)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.glass)
+
+                            if channel.hasCatchup {
+                                Button {
+                                    showCatchup = true
+                                } label: {
+                                    Label("Catch-up", systemImage: "clock.arrow.circlepath")
+                                        .font(.callout)
+                                        .lineLimit(1)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                }
+                                .buttonStyle(.glass)
+                            }
+                        }
                     }
-                    .buttonStyle(.glassProminent)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(maxHeight: 330)
         } else {
             LivePanel(
                 title: "Preview",
                 subtitle: nil
             ) {
-                Text("Select a channel to preview it here, then tap the preview to go full screen.")
+                Text("Select a channel to see what's on, then choose Full Screen to watch.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -712,6 +940,74 @@ private struct PreviewPane: View {
             Image(systemName: "play.tv")
                 .font(.system(size: 64))
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Guide summary (now / next)
+
+/// Now/next block for the preview pane. Re-evaluates every 30s so the progress
+/// bar advances and "next" rolls into "now" without a refetch.
+private struct GuideSummary: View {
+    let guide: [EPGListing]
+    let isLoading: Bool
+    let hasGuide: Bool
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let date = context.date
+            let current = guide.first { $0.isAiring(at: date) }
+            let upcoming = guide.filter { $0.start >= (current?.end ?? date) }.prefix(2)
+
+            VStack(alignment: .leading, spacing: 14) {
+                if isLoading {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text("Loading guide…")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let current {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("NOW")
+                            .font(.caption2.bold())
+                            .tracking(1.5)
+                            .foregroundStyle(Color.accentColor)
+                        Text(current.title.isEmpty ? "Untitled programme" : current.title)
+                            .font(.callout.weight(.semibold))
+                            .lineLimit(2)
+                        HStack(spacing: 12) {
+                            ProgressView(value: current.progress(at: date))
+                                .tint(Color.progressFill)
+                            Text(EPGFormat.timeRange(current))
+                                .font(.caption2)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .fixedSize()
+                        }
+                    }
+                    ForEach(Array(upcoming)) { listing in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(EPGFormat.time(listing.start))
+                                .font(.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .frame(width: 90, alignment: .leading)
+                            Text(listing.title.isEmpty ? "Untitled programme" : listing.title)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                    }
+                } else {
+                    Label(
+                        hasGuide ? "No guide information right now" : "No guide for this channel",
+                        systemImage: "calendar.badge.exclamationmark"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

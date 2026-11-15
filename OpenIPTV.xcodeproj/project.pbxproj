@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DEAAE3E5B7D0DBAB845851 /* LivePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEB4835A77409EF62C608C /* LivePlayback.swift */; };
 		C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */; };
 		C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE8E126D357E249CA960FC /* EPGCache.swift */; };
 		C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEDF7487BDEDF97A796A50 /* EPG.swift */; };
@@ -77,6 +78,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DEB4835A77409EF62C608C /* LivePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePlayback.swift; sourceTree = "<group>"; };
 		C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePlayback.swift; sourceTree = "<group>"; };
 		C0DE8E126D357E249CA960FC /* EPGCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGCache.swift; sourceTree = "<group>"; };
 		C0DEDF7487BDEDF97A796A50 /* EPG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPG.swift; sourceTree = "<group>"; };
@@ -174,6 +176,7 @@
 		B20268C22C4754B1003DD87F /* Video Player */ = {
 			isa = PBXGroup;
 			children = (
+				C0DEB4835A77409EF62C608C /* LivePlayback.swift */,
 				C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */,
 				B2F052A02C399DFD0064FBE7 /* VideoPlayerView.swift */,
 				B2F052AD2C3E390A0064FBE7 /* VideoPlayer+UIViewRepresentable.swift */,
@@ -394,6 +397,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DEAAE3E5B7D0DBAB845851 /* LivePlayback.swift in Sources */,
 				C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */,
 				C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */,
 				C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */,

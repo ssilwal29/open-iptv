@@ -72,11 +72,11 @@ struct VideoPlayerView: View {
                 // the screensaver while `timeControlStatus == .playing`,
                 // and live HLS frequently dips into `.waitingToPlayAtSpecifiedRate`
                 // on buffer jitter — those gaps add up and the screensaver fires.
-                UIApplication.shared.isIdleTimerDisabled = true
+                IdleTimerGuard.acquire()
             }
             .onDisappear {
                 self.status = .stopped
-                UIApplication.shared.isIdleTimerDisabled = false
+                IdleTimerGuard.release()
                 // Final save so we don't lose the seconds since the last tick.
                 if let key = progressKey, tracker.lastPosition > 0 {
                     PlaybackProgressStore.record(key, position: tracker.lastPosition, duration: tracker.lastDuration, in: modelContext)

@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 enum SchemaV1: VersionedSchema {
-    nonisolated(unsafe) static var versionIdentifier = Schema.Version(1, 6, 0)
+    nonisolated(unsafe) static var versionIdentifier = Schema.Version(1, 7, 0)
 
     nonisolated(unsafe) static var models: [any PersistentModel.Type] = [
         Profile.self,
@@ -18,6 +18,9 @@ enum SchemaV1: VersionedSchema {
     ]
 }
 
+// Schema 1.7.0: added optional `Profile.favoriteLiveStreamIds` (favourite
+// live channels). Additive + optional, so lightweight migration covers it.
+//
 // Schema 1.1.0 (multi-profile foundation): added optional `profile` relationship
 // to CategoryEntity / MovieEntity / SerieEntity / LiveEntity, added `name` field
 // to Profile (defaults to username), and dropped @Attribute(.unique) on the

@@ -21,6 +21,9 @@ final class Profile {
     var lastSyncedAt: Date?
     var syncIntervalDays: Int
     var hideAdultContent: Bool
+    /// Favourite live channels (stream ids), in the order they were added.
+    /// Optional: added in schema 1.7.0 (lightweight migration needs optional).
+    var favoriteLiveStreamIds: [Int]? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \Server.profile) var server: Server?
     @Relationship(deleteRule: .nullify, inverse: \CategoryEntity.profile) var categories: [CategoryEntity] = []
@@ -71,6 +74,22 @@ final class Profile {
     /// Mirrors `XtreamAPIService.identity`. Lets `ContentView` verify the
     /// injected repository has been rebuilt for this profile before bootstrap.
     var repositoryIdentity: String { "\(serverURL)|\(username)" }
+
+    // MARK: Favourite channels
+
+    func isFavoriteLive(_ streamId: Int) -> Bool {
+        favoriteLiveStreamIds?.contains(streamId) ?? false
+    }
+
+    func toggleFavoriteLive(_ streamId: Int) {
+        var ids = favoriteLiveStreamIds ?? []
+        if let index = ids.firstIndex(of: streamId) {
+            ids.remove(at: index)
+        } else {
+            ids.append(streamId)
+        }
+        favoriteLiveStreamIds = ids
+    }
 
 }
 
