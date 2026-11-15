@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */; };
 		C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE8E126D357E249CA960FC /* EPGCache.swift */; };
 		C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEDF7487BDEDF97A796A50 /* EPG.swift */; };
 		B20268B82C41F46D003DD87F /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20268B72C41F46D003DD87F /* SetupView.swift */; };
@@ -76,6 +77,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodePlayback.swift; sourceTree = "<group>"; };
 		C0DE8E126D357E249CA960FC /* EPGCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGCache.swift; sourceTree = "<group>"; };
 		C0DEDF7487BDEDF97A796A50 /* EPG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPG.swift; sourceTree = "<group>"; };
 		B20268B72C41F46D003DD87F /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 		B20268C22C4754B1003DD87F /* Video Player */ = {
 			isa = PBXGroup;
 			children = (
+				C0DEBC03990D785E1A58666C /* EpisodePlayback.swift */,
 				B2F052A02C399DFD0064FBE7 /* VideoPlayerView.swift */,
 				B2F052AD2C3E390A0064FBE7 /* VideoPlayer+UIViewRepresentable.swift */,
 				B2A0005B2CA00001003DD87F /* InsecureAssetResourceLoader.swift */,
@@ -391,6 +394,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DECFCA88A972EF95DA2AAA /* EpisodePlayback.swift in Sources */,
 				C0DE0B63B6A015BCC203D63E /* EPGCache.swift in Sources */,
 				C0DEA075040F8FFBFAE977DF /* EPG.swift in Sources */,
 				B2F0529F2C39837D0064FBE7 /* MovieView.swift in Sources */,

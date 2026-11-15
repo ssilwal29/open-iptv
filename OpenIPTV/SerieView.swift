@@ -243,7 +243,7 @@ private struct SerieContinueWatchingRail: View {
         }
         .navigationDestination(item: $goToSerie) { SerieDetailView(serie: $0) }
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(url: p.url, title: p.title, progressKey: p.progressKey)
+            PlaybackScreen(playback: p)
         }
     }
 
@@ -261,6 +261,19 @@ private struct SerieContinueWatchingRail: View {
         resolvingId = entry.id
         Task {
             let resolved = await StreamURLResolver.shared.resolve(raw)
+            if let episode {
+                // Full request: Info-panel metadata + Up Next chain.
+                playback = EpisodePlayback.make(
+                    url: resolved,
+                    episode: episode,
+                    serie: entry.serie,
+                    profileId: activeProfileId,
+                    repository: repository,
+                    fromBeginning: false
+                )
+                resolvingId = nil
+                return
+            }
             playback = ResolvedPlayback(
                 url: resolved,
                 title: (episode?.title.isEmpty == false) ? episode!.title : entry.serie.name,

@@ -234,7 +234,7 @@ private struct MovieContinueWatchingRail: View {
         }
         .navigationDestination(item: $goToMovie) { MovieDetailView(movie: $0) }
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(url: p.url, title: p.title, progressKey: p.progressKey)
+            PlaybackScreen(playback: p)
         }
     }
 
@@ -253,7 +253,12 @@ private struct MovieContinueWatchingRail: View {
             playback = ResolvedPlayback(
                 url: resolved,
                 title: entry.movie.name,
-                progressKey: .movie(profileId: activeProfileId, streamId: entry.movie.streamId)
+                progressKey: .movie(profileId: activeProfileId, streamId: entry.movie.streamId),
+                metadata: PlaybackMetadata(
+                    title: entry.movie.name,
+                    description: entry.movie.detail?.plot,
+                    artworkURL: entry.movie.streamIconURL
+                )
             )
             resolvingId = nil
         }

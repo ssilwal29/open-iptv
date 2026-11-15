@@ -129,12 +129,7 @@ struct SerieDetailView: View {
         .preference(key: DetailModalActiveKey.self, value: expandedCard != nil)
         .defaultFocus($playFocused, true)
         .fullScreenCover(item: $playback) { p in
-            VideoPlayerView(
-                url: p.url,
-                title: p.title,
-                progressKey: p.progressKey,
-                startFromBeginning: p.startFromBeginning
-            )
+            PlaybackScreen(playback: p)
         }
         .onAppear {
             if selectedSeasonNumber == nil {
@@ -574,12 +569,6 @@ struct SerieDetailView: View {
         return "Season \(season.seasonNumber)"
     }
 
-    private func streamURL(for episode: EpisodeEntity) -> URL? {
-        guard !episode.episodeId.isEmpty else { return nil }
-        let ext = episode.containerExtension.isEmpty ? "mp4" : episode.containerExtension
-        return repository?.episodeStreamURL(episodeId: episode.episodeId, containerExtension: ext)
-    }
-
     // MARK: Playback (resolve on-press, then present)
 
     private func playHero() {
@@ -603,20 +592,14 @@ struct SerieDetailView: View {
     /// Resolve the episode's stream URL, then present the player. The spinner
     /// lives on the control that initiated (cleared via `done`).
     private func resolveAndPresent(episode: EpisodeEntity, fromBeginning: Bool, done: @escaping () -> Void) {
-        guard let raw = streamURL(for: episode) else { done(); return }
+        guard let repository else { done(); return }
         Task {
-            let resolved = await StreamURLResolver.shared.resolve(raw)
-            playback = ResolvedPlayback(
-                url: resolved,
-                title: episode.title.isEmpty ? serie.name : episode.title,
-                progressKey: .episode(
-                    profileId: activeProfileId,
-                    seriesId: serie.seriesId,
-                    episodeId: episode.episodeId,
-                    season: episode.season?.seasonNumber ?? 0,
-                    number: episode.episodeNum
-                ),
-                startFromBeginning: fromBeginning
+            playback = await EpisodePlayback.resolve(
+                episode: episode,
+                serie: serie,
+                profileId: activeProfileId,
+                repository: repository,
+                fromBeginning: fromBeginning
             )
             done()
         }
