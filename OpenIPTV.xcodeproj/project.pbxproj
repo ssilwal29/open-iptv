@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DEB41FCE1B48E50524A78A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DEFC02DE27F1DE33666FAF /* Localizable.xcstrings */; };
 		C0DE80817A85FABFE2D610D0 /* EPGTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE919695A56500434224B1 /* EPGTests.swift */; };
 		C0DE97CF080C559BF0E593B9 /* AccountDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */; };
 		C0DE71865A52C0C015BDF257 /* TopShelfLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEB0F4C5B7191549B5993F /* TopShelfLinkTests.swift */; };
@@ -120,6 +121,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C0DEFC02DE27F1DE33666FAF /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		C0DE7F6836A6802B5EE0E462 /* OpenIPTVTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenIPTVTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0DE919695A56500434224B1 /* EPGTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGTests.swift; sourceTree = "<group>"; };
 		C0DEBBBF45A26E132CF569C0 /* AccountDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountDecodingTests.swift; sourceTree = "<group>"; };
@@ -387,6 +389,7 @@
 				B20268D32C4C0B04003DD87F /* Sample */,
 				B2F052792C38C2CC0064FBE7 /* Assets.xcassets */,
 				B2F052902C38E5F90064FBE7 /* Info.plist */,
+				C0DEFC02DE27F1DE33666FAF /* Localizable.xcstrings */,
 				C0DE25FCA9D86DDCA328BEBF /* OpenIPTV.entitlements */,
 				D9A1001500000015DEADBEF5 /* PrivacyInfo.xcprivacy */,
 				B2F0527B2C38C2CC0064FBE7 /* Preview Content */,
@@ -546,6 +549,7 @@
 				B2B5A0062C54688F00F3FFD3 /* liveCategories.json in Resources */,
 				B2F0527D2C38C2CC0064FBE7 /* Preview Assets.xcassets in Resources */,
 				B2F0527A2C38C2CC0064FBE7 /* Assets.xcassets in Resources */,
+				C0DEB41FCE1B48E50524A78A /* Localizable.xcstrings in Resources */,
 				D9A1001600000016DEADBEF6 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

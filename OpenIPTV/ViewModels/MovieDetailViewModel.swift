@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class MovieDetailViewModel {
-    var plot: String = "No description available."
+    var plot: String = String(localized: "No description available.")
     var genre: String = ""
     var releaseDate: String = ""
     var cast: String = ""

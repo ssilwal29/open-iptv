@@ -51,11 +51,11 @@ enum SyncStep: Sendable, Equatable {
 
     var title: String {
         switch self {
-        case .initializing: "Preparing your library…"
-        case .movies:       "Loading movies…"
-        case .series:       "Loading series…"
-        case .live:         "Loading live channels…"
-        case .finishing:    "Wrapping up…"
+        case .initializing: String(localized: "Preparing your library…")
+        case .movies:       String(localized: "Loading movies…")
+        case .series:       String(localized: "Loading series…")
+        case .live:         String(localized: "Loading live channels…")
+        case .finishing:    String(localized: "Wrapping up…")
         }
     }
 

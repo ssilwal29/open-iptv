@@ -12,19 +12,19 @@ enum AppError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "The server URL is invalid. Please check your settings."
+            return String(localized: "The server URL is invalid. Please check your settings.")
         case .invalidResponse(let code):
-            return "The server returned an unexpected response (HTTP \(code))."
+            return String(localized: "The server returned an unexpected response (HTTP \(code)).")
         case .decodingFailed(let error):
-            return "Couldn't read the server's data — \(Self.decodeReason(error)). The response may be in an unexpected format."
+            return String(localized: "Couldn't read the server's data — \(Self.decodeReason(error)). The response may be in an unexpected format.")
         case .credentialsMissing:
-            return "No account configured. Please set up your IPTV account first."
+            return String(localized: "No account configured. Please set up your IPTV account first.")
         case .authenticationFailed:
-            return "The server rejected that username or password."
+            return String(localized: "The server rejected that username or password.")
         case .networkUnavailable:
-            return "No internet connection. Reconnect and try again."
+            return String(localized: "No internet connection. Reconnect and try again.")
         case .retriesExhausted(let underlying):
-            return "Server unreachable after several attempts: \(underlying.localizedDescription)"
+            return String(localized: "Server unreachable after several attempts: \(underlying.localizedDescription)")
         }
     }
 

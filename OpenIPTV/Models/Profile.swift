@@ -157,17 +157,17 @@ enum ProfileExpiry {
 
     /// "Expires today", "Expires in 3 days", "Expired 2 days ago", "Never expires".
     static func summary(for profile: Profile, now: Date = .now) -> String {
-        guard let expiry = profile.expiryDate else { return "Never expires" }
+        guard let expiry = profile.expiryDate else { return String(localized: "Never expires") }
         if expiry <= now {
             let formatter = RelativeDateTimeFormatter()
             formatter.unitsStyle = .full
-            return "Expired \(formatter.localizedString(for: expiry, relativeTo: now))"
+            return String(localized: "Expired \(formatter.localizedString(for: expiry, relativeTo: now))")
         }
         let days = profile.daysUntilExpiry(from: now) ?? 0
         switch days {
-        case 0: return "Expires today"
-        case 1: return "Expires tomorrow"
-        default: return "Expires in \(days) days"
+        case 0: return String(localized: "Expires today")
+        case 1: return String(localized: "Expires tomorrow")
+        default: return String(localized: "Expires in \(days) days")
         }
     }
 }

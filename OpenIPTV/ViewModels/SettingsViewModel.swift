@@ -31,12 +31,12 @@ final class SettingsViewModel {
 
         switch result {
         case .upToDate:
-            refreshMessage = "Already up to date"
+            refreshMessage = String(localized: "Already up to date")
         case .synced(let stats):
             let mins = stats.duration.map { String(format: "%.1fs", $0) } ?? "?"
-            refreshMessage = "Synced \(stats.totalMovies + stats.totalSeries + stats.totalLives) items in \(mins) · pruned \(stats.pruned)"
+            refreshMessage = String(localized: "Synced \(stats.totalMovies + stats.totalSeries + stats.totalLives) items in \(mins) · pruned \(stats.pruned)")
         case .failed(let message):
-            refreshMessage = "Failed: \(message)"
+            refreshMessage = String(localized: "Failed: \(message)")
         }
     }
 
