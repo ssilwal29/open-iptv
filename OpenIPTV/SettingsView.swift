@@ -31,6 +31,7 @@ struct SettingsView: View {
     /// Bumped after PIN changes: the PIN lives in the Keychain, which SwiftUI
     /// can't observe, so this forces `hasParentalPIN` to be re-read.
     @State private var pinRevision = 0
+    @State private var isRemovingProfile = false
 
     @Namespace private var settingsScope
 
@@ -84,6 +85,20 @@ struct SettingsView: View {
         .sheet(isPresented: $showingCredentialsEdit) {
             if let profile = activeProfile {
                 EditCredentialsView(profile: profile)
+            }
+        }
+        .overlay {
+            if isRemovingProfile {
+                ZStack {
+                    Color.black.opacity(0.5).ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        ProgressView().controlSize(.large)
+                        Text("Removing account…")
+                            .font(.callout)
+                    }
+                    .padding(48)
+                    .cardSurface(cornerRadius: Radius.panel)
+                }
             }
         }
         .sheet(isPresented: $showingAddAccount) {
@@ -183,12 +198,22 @@ struct SettingsView: View {
     /// Switch away first so no view is left holding the deleted model, then
     /// remove. With no accounts left, RootView falls back to setup.
     private func remove(_ profile: Profile) {
+        guard !isRemovingProfile else { return }
         profilePendingRemoval = nil
         if activeProfileId == profile.id {
             activeProfileId = profiles.first { $0.id != profile.id }?.id ?? ""
         }
         selectedSection = .account
-        modelContext.removeProfile(profile)
+        isRemovingProfile = true
+        let profileId = profile.id
+        let container = modelContext.container
+        Task {
+            // Catalog first (background actor — can be tens of thousands of
+            // rows), then the profile itself on the main context.
+            await ProfileContentRemover(modelContainer: container).deleteContent(profileId: profileId)
+            modelContext.removeProfile(profile)
+            isRemovingProfile = false
+        }
     }
 
     private func runRefresh(for profile: Profile) async {
