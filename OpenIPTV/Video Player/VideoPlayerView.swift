@@ -81,6 +81,9 @@ struct VideoPlayerView: View {
                 if let key = progressKey, tracker.lastPosition > 0 {
                     PlaybackProgressStore.record(key, position: tracker.lastPosition, duration: tracker.lastDuration, in: modelContext)
                 }
+                if let key = progressKey {
+                    TopShelfPublisher.publish(profileId: key.profileId, in: modelContext)
+                }
             }
 
             if !errorString.isEmpty {

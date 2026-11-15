@@ -12,6 +12,12 @@ struct ContentView: View {
     @State private var detailModalActive = false
     @Query private var profiles: [Profile]
 
+    // Top Shelf deep links: held until the library and repository are ready.
+    @State private var pendingLink: TopShelfLink?
+    @State private var deepLinkMovie: MovieEntity?
+    @State private var deepLinkSerie: SerieEntity?
+    @State private var deepLinkPlayback: ResolvedPlayback?
+
     private var activeProfile: Profile? {
         profiles.first(where: { $0.id == activeProfileId })
     }
@@ -38,6 +44,14 @@ struct ContentView: View {
     var body: some View {
         if isConfigured {
             contentBody
+                .onOpenURL { url in
+                    if let link = TopShelfLink(url: url) { pendingLink = link }
+                }
+                .task(id: deepLinkKey) { await processPendingLink() }
+                .task(id: "\(activeProfileId)|\(viewModel.phase)") {
+                    guard viewModel.phase == .ready else { return }
+                    TopShelfPublisher.publish(profileId: activeProfileId, in: modelContext)
+                }
                 .task(id: bootstrapKey) {
                     guard let repository, !activeProfileId.isEmpty,
                           repositoryMatchesActiveProfile else { return }
@@ -51,6 +65,73 @@ struct ContentView: View {
                 }
         } else {
             SetupView(isConfigured: $isConfigured)
+        }
+    }
+
+    private var deepLinkKey: String {
+        "\(pendingLink?.url.absoluteString ?? "-")|\(viewModel.phase)|\(bootstrapKey)"
+    }
+
+    /// Opens (or plays) the item a Top Shelf tile points at. Switches profile
+    /// first when the tile belongs to another one, then waits for the
+    /// repository/bootstrap to catch up (the task re-runs on `deepLinkKey`).
+    private func processPendingLink() async {
+        guard let link = pendingLink else { return }
+        if link.profileId != activeProfileId {
+            guard profiles.contains(where: { $0.id == link.profileId }) else {
+                pendingLink = nil
+                return
+            }
+            activeProfileId = link.profileId
+            return
+        }
+        guard viewModel.phase == .ready, let repository, repositoryMatchesActiveProfile else { return }
+        pendingLink = nil
+        let profileId = activeProfileId
+
+        switch link.target {
+        case .movie(let streamId):
+            var d = FetchDescriptor<MovieEntity>(
+                predicate: #Predicate { $0.streamId == streamId && $0.profile?.id == profileId }
+            )
+            d.fetchLimit = 1
+            guard let movie = try? modelContext.fetch(d).first else { return }
+            guard link.play,
+                  let raw = repository.movieStreamURL(streamId: movie.streamId, containerExtension: movie.containerExtension)
+            else {
+                deepLinkMovie = movie
+                return
+            }
+            let resolved = await StreamURLResolver.shared.resolve(raw)
+            deepLinkPlayback = ResolvedPlayback(
+                url: resolved,
+                title: movie.name,
+                progressKey: .movie(profileId: profileId, streamId: movie.streamId),
+                metadata: PlaybackMetadata(
+                    title: movie.name,
+                    description: movie.detail?.plot,
+                    artworkURL: movie.streamIconURL
+                )
+            )
+
+        case .episode(let seriesId, let episodeId):
+            var d = FetchDescriptor<SerieEntity>(
+                predicate: #Predicate { $0.seriesId == seriesId && $0.profile?.id == profileId }
+            )
+            d.fetchLimit = 1
+            guard let serie = try? modelContext.fetch(d).first else { return }
+            guard link.play,
+                  let episode = serie.orderedEpisodes.first(where: { $0.episodeId == episodeId })
+            else {
+                deepLinkSerie = serie
+                return
+            }
+            deepLinkPlayback = await EpisodePlayback.resolve(
+                episode: episode,
+                serie: serie,
+                profileId: profileId,
+                repository: repository
+            )
         }
     }
 
@@ -93,7 +174,10 @@ struct ContentView: View {
                         .ignoresSafeArea(edges: [.bottom, .horizontal])
                 }
                 .tabViewStyle(.tabBarOnly)
+                .navigationDestination(item: $deepLinkMovie) { MovieDetailView(movie: $0) }
+                .navigationDestination(item: $deepLinkSerie) { SerieDetailView(serie: $0) }
             }
+            .fullScreenCover(item: $deepLinkPlayback) { PlaybackScreen(playback: $0) }
             // Chrome overlays on the same top band as the native TabView tab
             // pill. Blurred in sync with any detail-level modal via preference.
             .overlay(alignment: .top) {
